@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stencil Generator</title>
+<meta name="description" content="Turn a reference photo into a print-ready realism tattoo stencil.">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="app-header">
+  <h1>Stencil Generator</h1>
+  <button id="reset-btn" class="ghost-btn" hidden>New Photo</button>
+</header>
+
+<main id="app">
+
+  <section id="upload-view" class="upload-view">
+    <label for="file-input" class="upload-dropzone" id="dropzone">
+      <svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path fill="currentColor" d="M12 3l5 5h-3v6h-4V8H7l5-5zm-7 14h14v2H5v-2z"/></svg>
+      <span class="upload-title">Upload a photo</span>
+      <span class="upload-hint">Tap to choose a PNG or JPEG. Nothing leaves your device — all processing happens right here in the browser, using a bundled AI model (~17MB, downloaded once and cached).</span>
+    </label>
+    <input type="file" id="file-input" accept="image/png,image/jpeg" hidden>
+  </section>
+
+  <section id="editor-view" class="editor-view" hidden>
+
+    <div class="preview-panel">
+      <div class="preview-modes" role="tablist">
+        <button class="mode-btn active" data-mode="stencil" role="tab" aria-selected="true">Stencil</button>
+        <button class="mode-btn" data-mode="original" role="tab" aria-selected="false">Original</button>
+        <button class="mode-btn" data-mode="colour" role="tab" aria-selected="false">Stencil + Ref</button>
+        <button class="mode-btn" data-mode="split" role="tab" aria-selected="false">Split</button>
+      </div>
+
+      <div class="canvas-stage" id="canvas-stage">
+        <canvas id="canvas-original"></canvas>
+        <canvas id="canvas-stencil"></canvas>
+        <canvas id="canvas-colour" hidden></canvas>
+        <div class="split-handle" id="split-handle" hidden>
+          <div class="split-line"></div>
+          <div class="split-grip">&#8596;</div>
+        </div>
+        <div class="processing-overlay" id="processing-overlay" hidden>
+          <div class="spinner"></div>
+          <span id="processing-label">Processing&hellip;</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls-panel">
+
+      <details class="control-group" open>
+        <summary><h2>Line Art</h2></summary>
+
+        <label class="slider-row">
+          <span>Keep Detail <output id="out-keep-detail"></output></span>
+          <input type="range" id="in-keep-detail" min="0" max="120" step="1" value="15">
+        </label>
+
+        <label class="slider-row">
+          <span>Background Cleanup <output id="out-bg-cleanup"></output></span>
+          <input type="range" id="in-bg-cleanup" min="150" max="255" step="1" value="225">
+        </label>
+
+        <label class="slider-row">
+          <span>Line Thickness <output id="out-thickness"></output></span>
+          <input type="range" id="in-thickness" min="-3" max="3" step="1" value="0">
+        </label>
+
+        <label class="checkbox-row"><input type="checkbox" id="in-crisp"> Crisp lines (hard black &amp; white, no anti-aliasing)</label>
+        <label class="checkbox-row"><input type="checkbox" id="in-invert"> Invert lines</label>
+      </details>
+
+      <details class="control-group" open>
+        <summary><h2>Stencil Colour</h2></summary>
+        <div class="swatch-row" id="colour-swatches" role="radiogroup" aria-label="Stencil colour">
+          <button class="swatch-btn active" data-colour="#FF007F" style="--swatch: #FF007F" aria-label="Electric magenta" aria-pressed="true"></button>
+          <button class="swatch-btn" data-colour="#FF0000" style="--swatch: #FF0000" aria-label="Vivid scarlet" aria-pressed="false"></button>
+          <button class="swatch-btn" data-colour="#FF5500" style="--swatch: #FF5500" aria-label="Safety orange" aria-pressed="false"></button>
+          <button class="swatch-btn" data-colour="#20D000" style="--swatch: #20D000" aria-label="Chartreuse lime" aria-pressed="false"></button>
+          <button class="swatch-btn" data-colour="#00AEEF" style="--swatch: #00AEEF" aria-label="Electric cyan" aria-pressed="false"></button>
+        </div>
+
+        <label class="slider-row">
+          <span>Reference Opacity <output id="out-ref-opacity"></output></span>
+          <input type="range" id="in-ref-opacity" min="0" max="100" step="1" value="100">
+        </label>
+      </details>
+
+      <details class="control-group">
+        <summary><h2>Reference Photo</h2></summary>
+        <label class="checkbox-row"><input type="checkbox" id="in-ref-posterize"> Simplify into tone bands</label>
+        <label class="slider-row">
+          <span>Reference Levels <output id="out-ref-levels"></output></span>
+          <input type="range" id="in-ref-levels" min="4" max="16" step="1" value="8">
+        </label>
+        <button type="button" class="secondary-btn" id="toggle-hide-lines" aria-pressed="false">Hide Stencil Lines (preview)</button>
+      </details>
+
+      <details class="control-group" open>
+        <summary><h2>Export</h2></summary>
+
+        <div class="field-row">
+          <label>Width
+            <input type="number" id="in-print-width" min="0.5" step="0.1" value="6">
+          </label>
+          <label>Unit
+            <select id="in-print-unit">
+              <option value="in">inches</option>
+              <option value="cm">cm</option>
+            </select>
+          </label>
+          <label>DPI
+            <input type="number" id="in-print-dpi" min="72" max="1200" step="1" value="300">
+          </label>
+        </div>
+        <p class="hint" id="output-size-hint"></p>
+
+        <button class="primary-btn" id="export-stencil-btn">Download Stencil (thermal printer)</button>
+        <button class="secondary-btn" id="export-reference-btn">Download Grayscale Reference</button>
+        <button class="secondary-btn" id="export-colour-btn">Download Stencil + Reference (Colour)</button>
+      </details>
+
+    </div>
+  </section>
+</main>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
