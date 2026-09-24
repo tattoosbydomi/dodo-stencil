@@ -20,6 +20,7 @@ const dom = {
   overlay: el('processing-overlay'),
   overlayLabel: el('processing-label'),
   modeButtons: Array.from(document.querySelectorAll('.mode-btn')),
+  layoutButtons: Array.from(document.querySelectorAll('.layout-btn')),
   exportStencilBtn: el('export-stencil-btn'),
   exportReferenceBtn: el('export-reference-btn'),
   exportColourBtn: el('export-colour-btn'),
@@ -277,6 +278,20 @@ function applySplitPercent() {
 
 for (const btn of dom.modeButtons) {
   btn.addEventListener('click', () => setMode(btn.dataset.mode));
+}
+
+// --- Mobile layout (Full Preview / Live Edit) -----------------------------
+function setLayout(layout) {
+  dom.editorView.classList.toggle('live-layout', layout === 'live');
+  for (const btn of dom.layoutButtons) {
+    const active = btn.dataset.layout === layout;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', String(active));
+  }
+}
+
+for (const btn of dom.layoutButtons) {
+  btn.addEventListener('click', () => setLayout(btn.dataset.layout));
 }
 
 let dragging = false;

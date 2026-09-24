@@ -80,6 +80,50 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
   .controls-panel { flex: 1 1 40%; max-width: 420px; }
 }
 
+/* ---------- Mobile layout toggle (Full Preview / Live Edit) ---------- */
+.layout-toggle { display: none; }
+
+@media (max-width: 899px) {
+  .layout-toggle {
+    display: flex;
+    gap: 6px;
+    background: var(--panel);
+    border-radius: 999px;
+    padding: 4px;
+    margin-bottom: 10px;
+  }
+  .layout-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    padding: 8px 0;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .layout-btn.active { background: var(--accent); color: white; }
+
+  /* Live Edit: shrink the preview into a sticky column so it stays on screen
+     while the sliders (beside it, not below) are being dragged. */
+  #editor-view.live-layout {
+    display: grid;
+    grid-template-columns: minmax(112px, 38%) 1fr;
+    align-items: start;
+    gap: 12px;
+  }
+  #editor-view.live-layout .preview-panel {
+    position: sticky;
+    top: 76px;
+  }
+  #editor-view.live-layout .preview-modes { flex-wrap: wrap; gap: 4px; }
+  #editor-view.live-layout .mode-btn { flex: 1 1 40%; font-size: 0.7rem; padding: 6px 0; }
+  #editor-view.live-layout > .layout-toggle { grid-column: 1 / -1; }
+  #editor-view.live-layout .controls-panel { min-width: 0; }
+  #editor-view.live-layout .field-row { flex-direction: column; }
+  #editor-view.live-layout .swatch-btn { width: 32px; height: 32px; }
+}
+
 /* ---------- Preview ---------- */
 .preview-modes {
   display: flex;
@@ -108,7 +152,10 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
   background: var(--panel);
   border-radius: var(--radius);
   overflow: hidden;
-  touch-action: none;
+  /* pan-y (not none): lets a single-finger vertical drag scroll the page as
+     normal even when it starts on the preview box, while horizontal drags
+     (used for the split-view handle) are left for pointer events to handle. */
+  touch-action: pan-y;
   user-select: none;
 }
 .canvas-stage canvas {

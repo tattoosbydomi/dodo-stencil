@@ -26,6 +26,11 @@
 
   <section id="editor-view" class="editor-view" hidden>
 
+    <div class="layout-toggle" role="tablist" aria-label="Mobile layout">
+      <button class="layout-btn active" data-layout="full" role="tab" aria-selected="true">Full Preview</button>
+      <button class="layout-btn" data-layout="live" role="tab" aria-selected="false">Live Edit</button>
+    </div>
+
     <div class="preview-panel">
       <div class="preview-modes" role="tablist">
         <button class="mode-btn active" data-mode="stencil" role="tab" aria-selected="true">Stencil</button>
@@ -66,7 +71,7 @@
 
         <label class="slider-row">
           <span>Line Thickness <output id="out-thickness"></output></span>
-          <input type="range" id="in-thickness" min="-3" max="3" step="1" value="0">
+          <input type="range" id="in-thickness" min="-25" max="25" step="1" value="0">
         </label>
 
         <label class="checkbox-row"><input type="checkbox" id="in-crisp"> Crisp lines (hard black &amp; white, no anti-aliasing)</label>

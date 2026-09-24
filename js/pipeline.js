@@ -37,32 +37,6 @@ export function binarize(src, threshold = 128) {
   return out;
 }
 
-// Grayscale morphology: negative radius thins lines (max filter / erode-the-dark),
-// positive radius thickens lines (min filter / dilate-the-dark). 0 = no-op.
-export function adjustLineThickness(src, w, h, radius) {
-  if (!radius) return Float32Array.from(src);
-  const grow = radius > 0;
-  const r = Math.abs(radius);
-  const out = new Float32Array(src.length);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let best = grow ? 255 : 0;
-      for (let dy = -r; dy <= r; dy++) {
-        const yy = y + dy;
-        if (yy < 0 || yy >= h) continue;
-        for (let dx = -r; dx <= r; dx++) {
-          const xx = x + dx;
-          if (xx < 0 || xx >= w) continue;
-          const v = src[yy * w + xx];
-          best = grow ? Math.min(best, v) : Math.max(best, v);
-        }
-      }
-      out[y * w + x] = best;
-    }
-  }
-  return out;
-}
-
 export function posterize(src, levels) {
   const step = 255 / (levels - 1);
   const out = new Float32Array(src.length);
@@ -106,10 +80,23 @@ export function tintStencilOverReference(stencilGray, referenceGray, w, h, colou
 
 // Post-processes the neural network's raw line-art output (0-255 grayscale,
 // network already produced) into the final "lines" layer.
-export function finalizeLines(rawLineMap, w, h, params) {
-  let lines = applyLevels(rawLineMap, params.blackPoint, params.whitePoint);
+//
+// "Line Thickness" is implemented as a shift of the black/white points
+// together (same knobs "Keep Detail"/"Background Cleanup" already expose),
+// applied before those levels run — not as pixel-radius morphology. Morphology
+// reassigns each pixel to the darkest/lightest value within a radius, which for
+// soft anti-aliased line art is a flood, not a nudge: even radius 1 could wipe
+// thin strokes out entirely (thinner) or blow them into solid blobs (thicker),
+// with nothing gradual in between. Shifting the levels window instead moves
+// where *within the network's existing soft gradient* the line/paper cutoff
+// falls, so it stays continuous and reuses the exact remap that already
+// produces clean results for the other two sliders.
+export function finalizeLines(rawLineMap, params) {
+  const shift = params.lineThickness || 0;
+  const blackPoint = clamp255(params.blackPoint + shift);
+  const whitePoint = clamp255(params.whitePoint + shift);
+  let lines = applyLevels(rawLineMap, blackPoint, whitePoint);
   if (params.crisp) lines = binarize(lines, 128);
-  if (params.lineThickness) lines = adjustLineThickness(lines, w, h, params.lineThickness);
   if (params.invertLines) {
     for (let i = 0; i < lines.length; i++) lines[i] = 255 - lines[i];
   }

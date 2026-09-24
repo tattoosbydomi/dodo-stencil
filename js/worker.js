@@ -84,7 +84,7 @@ async function runNetwork(rgba, width, height) {
 }
 
 function packLayers(pipeline, rawLineMap, gray, width, height, params) {
-  const lines = pipeline.finalizeLines(rawLineMap, width, height, params);
+  const lines = pipeline.finalizeLines(rawLineMap, params);
   const reference = pipeline.buildReferenceLayer(gray, params);
   return { lines, reference, width, height };
 }
