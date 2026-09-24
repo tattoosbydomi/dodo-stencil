@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Stencil Generator</title>
 <meta name="description" content="Turn a reference photo into a print-ready realism tattoo stencil.">
-<link rel="stylesheet" href="css/styles.css">
+<!-- Cache-busting: GitHub Pages sets Cache-Control: max-age=600 on every file and
+     gives no way to change that, so a stale copy can be served (from GitHub's edge
+     cache or a visitor's browser) for up to 10 minutes after a deploy. Bumping the
+     ?v= below whenever js/ or css/ changes makes each new deploy a new URL, which
+     no cache layer can serve stale — must match ASSET_VERSION in js/main.js. -->
+<link rel="stylesheet" href="css/styles.css?v=1">
 </head>
 <body>
 <header class="app-header">
@@ -132,6 +137,6 @@
   </section>
 </main>
 
-<script type="module" src="js/main.js"></script>
+<script type="module" src="js/main.js?v=1"></script>
 </body>
 </html>

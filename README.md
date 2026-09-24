@@ -19,12 +19,15 @@ Then open the printed URL.
 1. Push this folder's contents to a repo (or to a `stencil_generator/` path if kept alongside other projects). This includes `models/informative-drawings.onnx` (~17MB) — GitHub Pages serves it like any other static file.
 2. In the repo's Settings → Pages, set the source to the branch/folder containing `index.html`.
 3. No build step is required — it's plain HTML/CSS/JS.
+4. **Cache-busting:** GitHub Pages gives every file `Cache-Control: max-age=600` and there's no way to change that, so a stale `js`/`css` file can be served (from GitHub's edge cache or a visitor's browser) for up to 10 minutes after a deploy. Whenever a deploy touches `js/` or `css/`, bump the `?v=N` in these three spots together before pushing:
+   - `index.html` — the `<link>` and `<script>` tags
+   - `js/main.js` — the `./pipeline.js?v=` import and the `ASSET_VERSION` constant (this one alone threads through to `worker.js` and its own `pipeline.js` import)
 
 ## How it works
 
 - **Line art comes from a real neural network, not an edge filter.** A classical filter (Sobel/Canny/XDoG) can only ever find "every edge in the pixels" — it has no way to know which lines an artist would actually keep. `models/informative-drawings.onnx` is a network trained specifically to convert a photo/illustration into line-art, so it produces selective, confident linework much closer to a hand-drawn stencil.
 - `js/worker.js` — runs entirely off the main thread: loads the ONNX model (via `onnxruntime-web`, WASM backend), runs inference once per uploaded image, and caches the result so slider tweaks never re-run the network.
-- `js/pipeline.js` — pure post-processing math (levels cleanup, line thickness via grayscale morphology, posterize, stencil-over-reference colour tinting). Operates on the network's output and on the original artwork; no DOM access, so it's reusable and easy to test outside the browser.
+- `js/pipeline.js` — pure post-processing math (levels cleanup and line thickness, posterize, stencil-over-reference colour tinting). Operates on the network's output and on the original artwork; no DOM access, so it's reusable and easy to test outside the browser.
 - `js/main.js` — UI wiring: upload, two-phase preview (one-time "analyze" pass + instant slider-driven "finalize" pass), preview modes (Original / Stencil / Stencil + Ref / Split), layer toggle, stencil colour picker, export.
 
 **Two-phase preview:** uploading a photo triggers one network inference pass (a second or two) at a capped working resolution. Every slider after that — Keep Detail, Background Cleanup, Line Thickness, Crisp, Invert, reference tone bands, stencil colour, reference opacity — is cheap post-processing on the cached network output, so the preview stays responsive on mobile despite the heavier underlying model.

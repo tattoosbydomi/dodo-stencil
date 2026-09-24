@@ -13,7 +13,11 @@ ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.10.0/di
 
 const MODEL_URL = new URL('../models/informative-drawings.onnx', self.location.href).href;
 
-let pipelinePromise = import('./pipeline.js');
+// Cache-busting: carry the ?v= this worker was instantiated with (see
+// ASSET_VERSION in main.js) through to pipeline.js, since a dynamic import()
+// specifier doesn't inherit it automatically.
+const ASSET_VERSION = new URLSearchParams(self.location.search).get('v') || '1';
+let pipelinePromise = import(`./pipeline.js?v=${ASSET_VERSION}`);
 let sessionPromise = null;
 function getSession() {
   if (!sessionPromise) {

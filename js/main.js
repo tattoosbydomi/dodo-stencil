@@ -1,4 +1,10 @@
-import { grayToRGBA, tintStencilOverReference } from './pipeline.js';
+// Cache-busting (see index.html): this static import's ?v=, ASSET_VERSION
+// below, and index.html's ?v= must all be bumped together on every deploy
+// that touches js/ or css/. ASSET_VERSION is threaded through to the
+// dynamically-loaded worker.js and pipeline.js further down, since import
+// specifiers (static or dynamic) don't inherit this file's own query string.
+import { grayToRGBA, tintStencilOverReference } from './pipeline.js?v=1';
+const ASSET_VERSION = '1';
 
 const MAX_PREVIEW_DIM = 900;
 const MAX_EXPORT_ANALYSIS_DIM = 1400; // cap the network's input size; final print can still be larger (see renderFullResLayers)
@@ -54,7 +60,7 @@ for (const id of checkboxIds) {
 }
 
 // --- Worker plumbing -------------------------------------------------
-const worker = new Worker(new URL('./worker.js', import.meta.url));
+const worker = new Worker(new URL(`./worker.js?v=${ASSET_VERSION}`, import.meta.url));
 let nextRequestId = 1;
 const pending = new Map();
 
