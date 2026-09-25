@@ -80,48 +80,94 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
   .controls-panel { flex: 1 1 40%; max-width: 420px; }
 }
 
-/* ---------- Mobile layout toggle (Full Preview / Live Edit) ---------- */
-.layout-toggle { display: none; }
+/* ---------- Mobile quick-adjust icon row + overlay slider ---------- */
+.quick-controls { display: none; }
 
 @media (max-width: 899px) {
-  .layout-toggle {
+  .quick-controls {
     display: flex;
-    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .quick-icon-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
     background: var(--panel);
-    border-radius: 999px;
-    padding: 4px;
-    margin-bottom: 10px;
-  }
-  .layout-btn {
-    flex: 1;
-    border: none;
-    background: transparent;
     color: var(--text-dim);
-    padding: 8px 0;
-    border-radius: 999px;
-    font-size: 0.8rem;
-    font-weight: 600;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
   }
-  .layout-btn.active { background: var(--accent); color: white; }
+  .quick-icon-btn svg { width: 20px; height: 20px; }
+  .quick-icon-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+}
 
-  /* Live Edit: shrink the preview into a sticky column so it stays on screen
-     while the sliders (beside it, not below) are being dragged. */
-  #editor-view.live-layout {
-    display: grid;
-    grid-template-columns: minmax(112px, 38%) 1fr;
-    align-items: start;
-    gap: 12px;
-  }
-  #editor-view.live-layout .preview-panel {
-    position: sticky;
-    top: 76px;
-  }
-  #editor-view.live-layout .preview-modes { flex-wrap: wrap; gap: 4px; }
-  #editor-view.live-layout .mode-btn { flex: 1 1 40%; font-size: 0.7rem; padding: 6px 0; }
-  #editor-view.live-layout > .layout-toggle { grid-column: 1 / -1; }
-  #editor-view.live-layout .controls-panel { min-width: 0; }
-  #editor-view.live-layout .field-row { flex-direction: column; }
-  #editor-view.live-layout .swatch-btn { width: 32px; height: 32px; }
+/* Overlay slider sits on top of the canvas stage (right side) so the preview
+   image keeps its full width instead of being squeezed by a sidebar. */
+.quick-slider-overlay {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  z-index: 8;
+  width: 52px;
+  height: 68%;
+  max-height: 260px;
+  min-height: 160px;
+  /* 70% transparent: mostly see-through so the artwork underneath stays visible */
+  background: rgba(17, 18, 20, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0 16px;
+  gap: 8px;
+}
+.quick-slider-close {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 2px 8px;
+  min-height: auto;
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+.quick-slider-value {
+  color: var(--text);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+.quick-slider-input {
+  flex: 1;
+  width: 32px;
+  margin: 0;
+  touch-action: none;
+  accent-color: var(--accent);
+  background: transparent;
+  /* Vertical range input: writing-mode is the modern standard, -webkit-appearance
+     the legacy Safari/older-Chromium fallback; browsers ignore what they don't support. */
+  writing-mode: vertical-lr;
+  direction: rtl;
+  -webkit-appearance: slider-vertical;
+  appearance: none;
+}
+.quick-slider-title {
+  color: var(--text-dim);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  writing-mode: vertical-rl;
+  white-space: nowrap;
 }
 
 /* ---------- Preview ---------- */

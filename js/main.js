@@ -26,7 +26,12 @@ const dom = {
   overlay: el('processing-overlay'),
   overlayLabel: el('processing-label'),
   modeButtons: Array.from(document.querySelectorAll('.mode-btn')),
-  layoutButtons: Array.from(document.querySelectorAll('.layout-btn')),
+  quickIconButtons: Array.from(document.querySelectorAll('.quick-icon-btn')),
+  quickSliderOverlay: el('quick-slider-overlay'),
+  quickSliderInput: el('quick-slider-input'),
+  quickSliderOutput: el('quick-slider-output'),
+  quickSliderLabel: el('quick-slider-label'),
+  quickSliderClose: el('quick-slider-close'),
   exportStencilBtn: el('export-stencil-btn'),
   exportReferenceBtn: el('export-reference-btn'),
   exportColourBtn: el('export-colour-btn'),
@@ -129,6 +134,7 @@ dom.resetBtn.addEventListener('click', () => {
   previewImageData = null;
   previewLayers = null;
   previewAnalyzed = false;
+  closeQuickSlider();
   dom.fileInput.value = '';
   dom.editorView.hidden = true;
   dom.uploadView.hidden = false;
@@ -286,19 +292,64 @@ for (const btn of dom.modeButtons) {
   btn.addEventListener('click', () => setMode(btn.dataset.mode));
 }
 
-// --- Mobile layout (Full Preview / Live Edit) -----------------------------
-function setLayout(layout) {
-  dom.editorView.classList.toggle('live-layout', layout === 'live');
-  for (const btn of dom.layoutButtons) {
-    const active = btn.dataset.layout === layout;
+// --- Mobile quick-adjust icons (vertical slider overlay on the preview) ---
+const quickSliderTargets = {
+  'keep-detail': { input: sliders['keep-detail'].input, output: sliders['keep-detail'].output, label: 'Keep Detail' },
+  'bg-cleanup': { input: sliders['bg-cleanup'].input, output: sliders['bg-cleanup'].output, label: 'Background Cleanup' },
+  'thickness': { input: sliders['thickness'].input, output: sliders['thickness'].output, label: 'Line Thickness' },
+  'ref-opacity': { input: dom.refOpacity, output: dom.refOpacityOut, label: 'Reference Opacity' },
+  'ref-levels': { input: sliders['ref-levels'].input, output: sliders['ref-levels'].output, label: 'Reference Levels' },
+};
+
+let activeQuickTarget = null;
+
+function openQuickSlider(key) {
+  const target = quickSliderTargets[key];
+  if (!target) return;
+  activeQuickTarget = key;
+  dom.quickSliderInput.min = target.input.min;
+  dom.quickSliderInput.max = target.input.max;
+  dom.quickSliderInput.step = target.input.step;
+  dom.quickSliderInput.value = target.input.value;
+  dom.quickSliderOutput.textContent = target.output.textContent;
+  dom.quickSliderLabel.textContent = target.label;
+  dom.quickSliderOverlay.hidden = false;
+  for (const btn of dom.quickIconButtons) {
+    const active = btn.dataset.target === key;
     btn.classList.toggle('active', active);
-    btn.setAttribute('aria-selected', String(active));
+    btn.setAttribute('aria-pressed', String(active));
   }
 }
 
-for (const btn of dom.layoutButtons) {
-  btn.addEventListener('click', () => setLayout(btn.dataset.layout));
+function closeQuickSlider() {
+  activeQuickTarget = null;
+  dom.quickSliderOverlay.hidden = true;
+  for (const btn of dom.quickIconButtons) {
+    btn.classList.remove('active');
+    btn.setAttribute('aria-pressed', 'false');
+  }
 }
+
+for (const btn of dom.quickIconButtons) {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.target;
+    if (activeQuickTarget === key) closeQuickSlider();
+    else openQuickSlider(key);
+  });
+}
+
+dom.quickSliderClose.addEventListener('click', closeQuickSlider);
+
+// Stop pointer events from reaching the canvas-stage's split-drag handler underneath.
+dom.quickSliderOverlay.addEventListener('pointerdown', (e) => e.stopPropagation());
+
+dom.quickSliderInput.addEventListener('input', () => {
+  if (!activeQuickTarget) return;
+  const { input } = quickSliderTargets[activeQuickTarget];
+  input.value = dom.quickSliderInput.value;
+  dom.quickSliderOutput.textContent = dom.quickSliderInput.value;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+});
 
 let dragging = false;
 function pointerToPercent(clientX) {

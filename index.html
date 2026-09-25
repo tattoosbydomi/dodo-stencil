@@ -10,7 +10,7 @@
      cache or a visitor's browser) for up to 10 minutes after a deploy. Bumping the
      ?v= below whenever js/ or css/ changes makes each new deploy a new URL, which
      no cache layer can serve stale — must match ASSET_VERSION in js/main.js. -->
-<link rel="stylesheet" href="css/styles.css?v=1">
+<link rel="stylesheet" href="css/styles.css?v=2">
 </head>
 <body>
 <header class="app-header">
@@ -31,11 +31,6 @@
 
   <section id="editor-view" class="editor-view" hidden>
 
-    <div class="layout-toggle" role="tablist" aria-label="Mobile layout">
-      <button class="layout-btn active" data-layout="full" role="tab" aria-selected="true">Full Preview</button>
-      <button class="layout-btn" data-layout="live" role="tab" aria-selected="false">Live Edit</button>
-    </div>
-
     <div class="preview-panel">
       <div class="preview-modes" role="tablist">
         <button class="mode-btn active" data-mode="stencil" role="tab" aria-selected="true">Stencil</button>
@@ -52,10 +47,34 @@
           <div class="split-line"></div>
           <div class="split-grip">&#8596;</div>
         </div>
+        <div class="quick-slider-overlay" id="quick-slider-overlay" hidden>
+          <button type="button" class="quick-slider-close" id="quick-slider-close" aria-label="Close slider">&times;</button>
+          <output class="quick-slider-value" id="quick-slider-output"></output>
+          <input type="range" class="quick-slider-input" id="quick-slider-input">
+          <span class="quick-slider-title" id="quick-slider-label"></span>
+        </div>
         <div class="processing-overlay" id="processing-overlay" hidden>
           <div class="spinner"></div>
           <span id="processing-label">Processing&hellip;</span>
         </div>
+      </div>
+
+      <div class="quick-controls" id="quick-controls" role="tablist" aria-label="Quick adjust">
+        <button class="quick-icon-btn" data-target="keep-detail" role="tab" aria-pressed="false" aria-label="Keep Detail" title="Keep Detail">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+        </button>
+        <button class="quick-icon-btn" data-target="bg-cleanup" role="tab" aria-pressed="false" aria-label="Background Cleanup" title="Background Cleanup">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2l1.6 5.9L19 9.5l-5.4 1.6L12 17l-1.6-5.9L5 9.5l5.4-1.6L12 2z"/></svg>
+        </button>
+        <button class="quick-icon-btn" data-target="thickness" role="tab" aria-pressed="false" aria-label="Line Thickness" title="Line Thickness">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="1.5" fill="currentColor"/><rect x="3" y="10.5" width="18" height="3" fill="currentColor"/><rect x="3" y="17" width="18" height="4.5" fill="currentColor"/></svg>
+        </button>
+        <button class="quick-icon-btn" data-target="ref-opacity" role="tab" aria-pressed="false" aria-label="Reference Opacity" title="Reference Opacity">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="12" r="6" fill="currentColor" opacity="0.55"/><circle cx="14.5" cy="12" r="6" fill="currentColor" opacity="0.55"/></svg>
+        </button>
+        <button class="quick-icon-btn" data-target="ref-levels" role="tab" aria-pressed="false" aria-label="Reference Levels" title="Reference Levels">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="14" width="4" height="7" fill="currentColor"/><rect x="10" y="9" width="4" height="12" fill="currentColor"/><rect x="17" y="4" width="4" height="17" fill="currentColor"/></svg>
+        </button>
       </div>
     </div>
 
@@ -137,6 +156,6 @@
   </section>
 </main>
 
-<script type="module" src="js/main.js?v=1"></script>
+<script type="module" src="js/main.js?v=2"></script>
 </body>
 </html>
