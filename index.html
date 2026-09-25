@@ -111,22 +111,19 @@
           <button class="swatch-btn" data-colour="#20D000" style="--swatch: #20D000" aria-label="Chartreuse lime" aria-pressed="false"></button>
           <button class="swatch-btn" data-colour="#00AEEF" style="--swatch: #00AEEF" aria-label="Electric cyan" aria-pressed="false"></button>
         </div>
-
-        <label class="slider-row">
-          <span>Reference Opacity <output id="out-ref-opacity"></output></span>
-          <input type="range" id="in-ref-opacity" min="0" max="100" step="1" value="100">
-        </label>
       </details>
 
       <details class="control-group" open>
         <summary><h2>Settings</h2></summary>
         <label class="checkbox-row"><input type="checkbox" id="in-crisp"> Monochromatic stencil lines</label>
-        <label class="checkbox-row"><input type="checkbox" id="in-ref-posterize"> Simplify reference image into tone bands</label>
-      </details>
 
-      <!-- Desktop-only: this slider has a quick-adjust icon equivalent on mobile (see .quick-controls). -->
-      <details class="control-group desktop-only-group">
-        <summary><h2>Reference Photo</h2></summary>
+        <label class="slider-row">
+          <span>Reference Opacity <output id="out-ref-opacity"></output></span>
+          <input type="range" id="in-ref-opacity" min="0" max="100" step="1" value="100">
+        </label>
+
+        <label class="checkbox-row"><input type="checkbox" id="in-ref-posterize"> Simplify reference image into tone bands</label>
+
         <label class="slider-row">
           <span>Reference Levels <output id="out-ref-levels"></output></span>
           <input type="range" id="in-ref-levels" min="4" max="16" step="1" value="8">
