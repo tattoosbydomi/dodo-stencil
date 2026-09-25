@@ -10,7 +10,7 @@
      cache or a visitor's browser) for up to 10 minutes after a deploy. Bumping the
      ?v= below whenever js/ or css/ changes makes each new deploy a new URL, which
      no cache layer can serve stale — must match ASSET_VERSION in js/main.js. -->
-<link rel="stylesheet" href="css/styles.css?v=3">
+<link rel="stylesheet" href="css/styles.css?v=4">
 </head>
 <body>
 <header class="app-header">
@@ -33,24 +33,23 @@
 
     <div class="preview-panel">
       <div class="preview-modes" role="tablist">
-        <button class="mode-btn active" data-mode="stencil" role="tab" aria-selected="true">Stencil</button>
         <button class="mode-btn" data-mode="original" role="tab" aria-selected="false">Original</button>
-        <button class="mode-btn" data-mode="colour" role="tab" aria-selected="false">Stencil + Ref</button>
-        <button class="mode-btn" data-mode="split" role="tab" aria-selected="false">Split</button>
+        <button class="mode-btn active" data-mode="stencil" role="tab" aria-selected="true">Stencil</button>
+        <button class="mode-btn" data-mode="reference" role="tab" aria-selected="false">Reference</button>
+        <button class="mode-btn" data-mode="colour" role="tab" aria-selected="false">ST + RF</button>
       </div>
 
       <div class="canvas-stage" id="canvas-stage">
-        <canvas id="canvas-original"></canvas>
+        <canvas id="canvas-original" hidden></canvas>
         <canvas id="canvas-stencil"></canvas>
+        <canvas id="canvas-reference" hidden></canvas>
         <canvas id="canvas-colour" hidden></canvas>
-        <div class="split-handle" id="split-handle" hidden>
-          <div class="split-line"></div>
-          <div class="split-grip">&#8596;</div>
-        </div>
         <div class="quick-slider-overlay" id="quick-slider-overlay" hidden>
           <button type="button" class="quick-slider-close" id="quick-slider-close" aria-label="Close slider">&times;</button>
           <output class="quick-slider-value" id="quick-slider-output"></output>
-          <input type="range" class="quick-slider-input" id="quick-slider-input" min="0" max="100" step="1">
+          <div class="quick-slider-track">
+            <input type="range" class="quick-slider-input" id="quick-slider-input" min="0" max="100" step="1">
+          </div>
         </div>
         <div class="processing-overlay" id="processing-overlay" hidden>
           <div class="spinner"></div>
@@ -80,7 +79,8 @@
 
     <div class="controls-panel">
 
-      <details class="control-group" open>
+      <!-- Desktop-only: these sliders have quick-adjust icon equivalents on mobile (see .quick-controls). -->
+      <details class="control-group desktop-only-group" open>
         <summary><h2>Line Art</h2></summary>
 
         <label class="slider-row">
@@ -98,7 +98,6 @@
           <input type="range" id="in-thickness" min="-25" max="25" step="1" value="0">
         </label>
 
-        <label class="checkbox-row"><input type="checkbox" id="in-crisp"> Crisp lines (hard black &amp; white, no anti-aliasing)</label>
         <!-- Invert lines: disabled for now, kept in the DOM (hidden) so it can be re-enabled later by removing `hidden`. -->
         <label class="checkbox-row" hidden><input type="checkbox" id="in-invert"> Invert lines</label>
       </details>
@@ -119,28 +118,27 @@
         </label>
       </details>
 
-      <details class="control-group">
+      <details class="control-group" open>
+        <summary><h2>Settings</h2></summary>
+        <label class="checkbox-row"><input type="checkbox" id="in-crisp"> Monochromatic stencil lines</label>
+        <label class="checkbox-row"><input type="checkbox" id="in-ref-posterize"> Simplify reference image into tone bands</label>
+      </details>
+
+      <!-- Desktop-only: this slider has a quick-adjust icon equivalent on mobile (see .quick-controls). -->
+      <details class="control-group desktop-only-group">
         <summary><h2>Reference Photo</h2></summary>
-        <label class="checkbox-row"><input type="checkbox" id="in-ref-posterize"> Simplify into tone bands</label>
         <label class="slider-row">
           <span>Reference Levels <output id="out-ref-levels"></output></span>
           <input type="range" id="in-ref-levels" min="4" max="16" step="1" value="8">
         </label>
-        <button type="button" class="secondary-btn" id="toggle-hide-lines" aria-pressed="false">Hide Stencil Lines (preview)</button>
       </details>
 
       <details class="control-group" open>
         <summary><h2>Export</h2></summary>
 
         <div class="field-row">
-          <label>Width
-            <input type="number" id="in-print-width" min="0.5" step="0.1" value="6">
-          </label>
-          <label>Unit
-            <select id="in-print-unit">
-              <option value="in">inches</option>
-              <option value="cm">cm</option>
-            </select>
+          <label>Width (cm)
+            <input type="number" id="in-print-width" min="0.5" step="0.1" value="15">
           </label>
           <label>DPI
             <input type="number" id="in-print-dpi" min="72" max="1200" step="1" value="300">
@@ -157,6 +155,6 @@
   </section>
 </main>
 
-<script type="module" src="js/main.js?v=3"></script>
+<script type="module" src="js/main.js?v=4"></script>
 </body>
 </html>

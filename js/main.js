@@ -21,8 +21,8 @@ const dom = {
   stage: el('canvas-stage'),
   canvasOriginal: el('canvas-original'),
   canvasStencil: el('canvas-stencil'),
+  canvasReference: el('canvas-reference'),
   canvasColour: el('canvas-colour'),
-  splitHandle: el('split-handle'),
   overlay: el('processing-overlay'),
   overlayLabel: el('processing-label'),
   modeButtons: Array.from(document.querySelectorAll('.mode-btn')),
@@ -38,10 +38,8 @@ const dom = {
   colourSwatches: Array.from(document.querySelectorAll('.swatch-btn')),
   refOpacity: el('in-ref-opacity'),
   refOpacityOut: el('out-ref-opacity'),
-  hideLinesBtn: el('toggle-hide-lines'),
   outputSizeHint: el('output-size-hint'),
   printWidth: el('in-print-width'),
-  printUnit: el('in-print-unit'),
   printDpi: el('in-print-dpi'),
 };
 
@@ -99,8 +97,6 @@ let previewW = 0, previewH = 0;
 let previewLayers = null;     // last computed { lines, reference, width, height }
 let currentMode = 'stencil';
 let stencilColour = dom.colourSwatches.find((btn) => btn.classList.contains('active'))?.dataset.colour || '#FF007F';
-let linesHidden = false;
-let splitPercent = 50;
 let debounceTimer = null;
 let latestFinalizeToken = 0;
 let previewAnalyzed = false;
@@ -158,6 +154,7 @@ async function loadFile(file) {
 
   dom.canvasOriginal.width = previewW; dom.canvasOriginal.height = previewH;
   dom.canvasStencil.width = previewW; dom.canvasStencil.height = previewH;
+  dom.canvasReference.width = previewW; dom.canvasReference.height = previewH;
   dom.canvasColour.width = previewW; dom.canvasColour.height = previewH;
   dom.canvasOriginal.getContext('2d').putImageData(previewImageData, 0, 0);
   dom.stage.style.aspectRatio = `${previewW} / ${previewH}`;
@@ -220,19 +217,24 @@ function renderStencilCanvas() {
   dom.canvasStencil.getContext('2d').putImageData(imageData, 0, 0);
 }
 
+function renderReferenceCanvas() {
+  if (!previewLayers) return;
+  const rgba = grayToRGBA(previewLayers.reference, previewLayers.width, previewLayers.height);
+  const imageData = new ImageData(rgba, previewLayers.width, previewLayers.height);
+  dom.canvasReference.getContext('2d').putImageData(imageData, 0, 0);
+}
+
 function renderColourCanvas() {
   if (!previewLayers) return;
-  const lines = linesHidden
-    ? new Float32Array(previewLayers.lines.length).fill(255) // paper-white = fully transparent overlay, so only the reference shows
-    : previewLayers.lines;
-  const refOpacity = linesHidden ? 1 : Number(dom.refOpacity.value) / 100;
-  const rgba = tintStencilOverReference(lines, previewLayers.reference, previewLayers.width, previewLayers.height, stencilColour, refOpacity);
+  const refOpacity = Number(dom.refOpacity.value) / 100;
+  const rgba = tintStencilOverReference(previewLayers.lines, previewLayers.reference, previewLayers.width, previewLayers.height, stencilColour, refOpacity);
   const imageData = new ImageData(rgba, previewLayers.width, previewLayers.height);
   dom.canvasColour.getContext('2d').putImageData(imageData, 0, 0);
 }
 
 function renderAllCanvases() {
   renderStencilCanvas();
+  renderReferenceCanvas();
   renderColourCanvas();
 }
 
@@ -253,14 +255,7 @@ dom.refOpacity.addEventListener('input', () => {
   renderColourCanvas();
 });
 
-dom.hideLinesBtn.addEventListener('click', () => {
-  linesHidden = !linesHidden;
-  dom.hideLinesBtn.setAttribute('aria-pressed', String(linesHidden));
-  dom.hideLinesBtn.textContent = linesHidden ? 'Show Stencil Lines (preview)' : 'Hide Stencil Lines (preview)';
-  renderColourCanvas();
-});
-
-// --- Preview mode (Original / Stencil / Split) ---------------------------
+// --- Preview mode (Original / Stencil / Reference / ST + RF) -------------
 function setMode(mode) {
   currentMode = mode;
   for (const btn of dom.modeButtons) {
@@ -268,24 +263,10 @@ function setMode(mode) {
     btn.classList.toggle('active', active);
     btn.setAttribute('aria-selected', String(active));
   }
+  dom.canvasOriginal.hidden = mode !== 'original';
+  dom.canvasStencil.hidden = mode !== 'stencil';
+  dom.canvasReference.hidden = mode !== 'reference';
   dom.canvasColour.hidden = mode !== 'colour';
-  if (mode === 'original') {
-    dom.canvasStencil.style.clipPath = 'inset(0 0 0 100%)';
-    dom.splitHandle.hidden = true;
-  } else if (mode === 'stencil') {
-    dom.canvasStencil.style.clipPath = 'inset(0 0 0 0%)';
-    dom.splitHandle.hidden = true;
-  } else if (mode === 'colour') {
-    dom.splitHandle.hidden = true;
-  } else {
-    dom.splitHandle.hidden = false;
-    applySplitPercent();
-  }
-}
-
-function applySplitPercent() {
-  dom.canvasStencil.style.clipPath = `inset(0 0 0 ${splitPercent}%)`;
-  dom.splitHandle.style.left = `${splitPercent}%`;
 }
 
 for (const btn of dom.modeButtons) {
@@ -293,14 +274,16 @@ for (const btn of dom.modeButtons) {
 }
 
 // --- Mobile quick-adjust icons (vertical slider overlay on the preview) ---
-// The overlay always shows a normalised 0-100 scale, regardless of the real
-// control's underlying range (e.g. Line Thickness is really -25..25).
+// Most controls show a normalised 0-100 scale on the overlay, regardless of the
+// real control's underlying range (e.g. Line Thickness is really -25..25).
+// Reference Levels is the exception: it's a literal count of tone bands, so
+// normalising it to 0-100 would misrepresent it — it keeps its own raw scale.
 const quickSliderTargets = {
   'keep-detail': { input: sliders['keep-detail'].input, label: 'Keep Detail' },
   'bg-cleanup': { input: sliders['bg-cleanup'].input, label: 'Background Cleanup' },
   'thickness': { input: sliders['thickness'].input, label: 'Line Thickness' },
   'ref-opacity': { input: dom.refOpacity, label: 'Reference Opacity' },
-  'ref-levels': { input: sliders['ref-levels'].input, label: 'Reference Levels' },
+  'ref-levels': { input: sliders['ref-levels'].input, label: 'Reference Levels', raw: true },
 };
 
 function percentFromValue(value, min, max) {
@@ -322,9 +305,20 @@ function openQuickSlider(key) {
   activeQuickTarget = key;
   const min = Number(target.input.min);
   const max = Number(target.input.max);
-  const percent = percentFromValue(Number(target.input.value), min, max);
-  dom.quickSliderInput.value = percent;
-  dom.quickSliderOutput.textContent = percent;
+  if (target.raw) {
+    dom.quickSliderInput.min = min;
+    dom.quickSliderInput.max = max;
+    dom.quickSliderInput.step = target.input.step || 1;
+    dom.quickSliderInput.value = target.input.value;
+    dom.quickSliderOutput.textContent = target.input.value;
+  } else {
+    dom.quickSliderInput.min = 0;
+    dom.quickSliderInput.max = 100;
+    dom.quickSliderInput.step = 1;
+    const percent = percentFromValue(Number(target.input.value), min, max);
+    dom.quickSliderInput.value = percent;
+    dom.quickSliderOutput.textContent = percent;
+  }
   dom.quickSliderOverlay.hidden = false;
   dom.quickDescription.textContent = target.label;
   dom.quickDescription.classList.add('visible');
@@ -355,47 +349,29 @@ for (const btn of dom.quickIconButtons) {
 
 dom.quickSliderClose.addEventListener('click', closeQuickSlider);
 
-// Stop pointer events from reaching the canvas-stage's split-drag handler underneath.
-dom.quickSliderOverlay.addEventListener('pointerdown', (e) => e.stopPropagation());
-
 dom.quickSliderInput.addEventListener('input', () => {
   if (!activeQuickTarget) return;
-  const { input } = quickSliderTargets[activeQuickTarget];
-  const min = Number(input.min);
-  const max = Number(input.max);
-  const step = Number(input.step) || 1;
-  const percent = Number(dom.quickSliderInput.value);
-  input.value = valueFromPercent(percent, min, max, step);
-  dom.quickSliderOutput.textContent = percent;
+  const target = quickSliderTargets[activeQuickTarget];
+  const { input } = target;
+  if (target.raw) {
+    input.value = dom.quickSliderInput.value;
+    dom.quickSliderOutput.textContent = dom.quickSliderInput.value;
+  } else {
+    const min = Number(input.min);
+    const max = Number(input.max);
+    const step = Number(input.step) || 1;
+    const percent = Number(dom.quickSliderInput.value);
+    input.value = valueFromPercent(percent, min, max, step);
+    dom.quickSliderOutput.textContent = percent;
+  }
   input.dispatchEvent(new Event('input', { bubbles: true }));
 });
 
-let dragging = false;
-function pointerToPercent(clientX) {
-  const rect = dom.stage.getBoundingClientRect();
-  return Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
-}
-dom.stage.addEventListener('pointerdown', (e) => {
-  if (currentMode !== 'split') return;
-  dragging = true;
-  splitPercent = pointerToPercent(e.clientX);
-  applySplitPercent();
-  dom.stage.setPointerCapture(e.pointerId);
-});
-dom.stage.addEventListener('pointermove', (e) => {
-  if (!dragging) return;
-  splitPercent = pointerToPercent(e.clientX);
-  applySplitPercent();
-});
-dom.stage.addEventListener('pointerup', () => { dragging = false; });
-dom.stage.addEventListener('pointercancel', () => { dragging = false; });
-
 // --- Export ------------------------------------------------------------
 function computeOutputPixelSize() {
-  const widthVal = Number(dom.printWidth.value) || 6;
-  const unit = dom.printUnit.value;
+  const widthCm = Number(dom.printWidth.value) || 15;
   const dpi = Number(dom.printDpi.value) || 300;
-  const widthInches = unit === 'cm' ? widthVal / 2.54 : widthVal;
+  const widthInches = widthCm / 2.54;
   const widthPx = Math.max(1, Math.round(widthInches * dpi));
   let heightPx = widthPx;
   if (sourceBitmap) heightPx = Math.max(1, Math.round(widthPx * (sourceBitmap.height / sourceBitmap.width)));
@@ -406,7 +382,7 @@ function updateOutputSizeHint() {
   const { widthPx, heightPx, dpi } = computeOutputPixelSize();
   dom.outputSizeHint.textContent = `Output size: ${widthPx} × ${heightPx} px at ${dpi} DPI`;
 }
-[dom.printWidth, dom.printUnit, dom.printDpi].forEach((elm) => elm.addEventListener('input', updateOutputSizeHint));
+[dom.printWidth, dom.printDpi].forEach((elm) => elm.addEventListener('input', updateOutputSizeHint));
 
 async function renderFullResLayers() {
   const { widthPx, heightPx } = computeOutputPixelSize();

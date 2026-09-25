@@ -160,28 +160,50 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
   font-size: 0.72rem;
   font-variant-numeric: tabular-nums;
 }
-.quick-slider-input {
+/* Wrapper draws the visible track line itself (centered via absolute + translateX),
+   rather than relying on the native runnable-track pseudo-element to center inside
+   the input's box — under writing-mode: vertical-lr that native centering isn't
+   reliable across browsers, which is what made the thumb read as off-line. */
+.quick-slider-track {
+  position: relative;
   flex: 1;
   width: 28px;
+  display: flex;
+  justify-content: center;
+}
+.quick-slider-track::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 4px;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  pointer-events: none;
+}
+.quick-slider-input {
+  position: relative;
+  width: 28px;
+  height: 100%;
   margin: 0;
   touch-action: none;
   background: transparent;
-  /* Vertical range input: writing-mode is the modern standard. Track/thumb are
-     fully custom below so the scale position reads clearly through the overlay. */
+  /* Vertical range input: writing-mode is the modern standard. The native track
+     is made transparent (see below) since the wrapper's ::before draws the line. */
   writing-mode: vertical-lr;
   direction: rtl;
   appearance: none;
   -webkit-appearance: none;
 }
 .quick-slider-input::-webkit-slider-runnable-track {
-  width: 4px;
-  background: rgba(255, 255, 255, 0.45);
-  border-radius: 999px;
+  width: 28px;
+  background: transparent;
 }
 .quick-slider-input::-moz-range-track {
-  width: 4px;
-  background: rgba(255, 255, 255, 0.45);
-  border-radius: 999px;
+  width: 28px;
+  background: transparent;
 }
 .quick-slider-input::-webkit-slider-thumb {
   appearance: none;
@@ -230,10 +252,6 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
   background: var(--panel);
   border-radius: var(--radius);
   overflow: hidden;
-  /* pan-y (not none): lets a single-finger vertical drag scroll the page as
-     normal even when it starts on the preview box, while horizontal drags
-     (used for the split-view handle) are left for pointer events to handle. */
-  touch-action: pan-y;
   user-select: none;
 }
 .canvas-stage canvas {
@@ -245,38 +263,8 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
 }
 #canvas-original { z-index: 1; }
 #canvas-stencil { z-index: 2; }
+#canvas-reference { z-index: 2; }
 #canvas-colour { z-index: 3; }
-
-.split-handle {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  z-index: 5;
-  transform: translateX(-50%);
-}
-.split-line {
-  position: absolute;
-  top: 0; bottom: 0; left: 50%;
-  width: 2px;
-  background: white;
-  transform: translateX(-50%);
-  box-shadow: 0 0 6px rgba(0,0,0,0.6);
-}
-.split-grip {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: white;
-  color: #111;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-}
 
 .processing-overlay {
   position: absolute;
@@ -341,6 +329,8 @@ details.control-group[open] summary { margin-bottom: 10px; }
 /* On mobile these are obsolete: the quick-adjust icons + overlay slider replace them. */
 @media (max-width: 899px) {
   .slider-row { display: none; }
+  /* Groups left with no visible content on mobile once their sliders are hidden above. */
+  .desktop-only-group { display: none; }
 }
 
 .swatch-row { display: flex; gap: 10px; margin-top: 10px; }
