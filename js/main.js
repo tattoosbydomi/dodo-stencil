@@ -30,8 +30,8 @@ const dom = {
   quickSliderOverlay: el('quick-slider-overlay'),
   quickSliderInput: el('quick-slider-input'),
   quickSliderOutput: el('quick-slider-output'),
-  quickSliderLabel: el('quick-slider-label'),
   quickSliderClose: el('quick-slider-close'),
+  quickDescription: el('quick-description'),
   exportStencilBtn: el('export-stencil-btn'),
   exportReferenceBtn: el('export-reference-btn'),
   exportColourBtn: el('export-colour-btn'),
@@ -293,13 +293,26 @@ for (const btn of dom.modeButtons) {
 }
 
 // --- Mobile quick-adjust icons (vertical slider overlay on the preview) ---
+// The overlay always shows a normalised 0-100 scale, regardless of the real
+// control's underlying range (e.g. Line Thickness is really -25..25).
 const quickSliderTargets = {
-  'keep-detail': { input: sliders['keep-detail'].input, output: sliders['keep-detail'].output, label: 'Keep Detail' },
-  'bg-cleanup': { input: sliders['bg-cleanup'].input, output: sliders['bg-cleanup'].output, label: 'Background Cleanup' },
-  'thickness': { input: sliders['thickness'].input, output: sliders['thickness'].output, label: 'Line Thickness' },
-  'ref-opacity': { input: dom.refOpacity, output: dom.refOpacityOut, label: 'Reference Opacity' },
-  'ref-levels': { input: sliders['ref-levels'].input, output: sliders['ref-levels'].output, label: 'Reference Levels' },
+  'keep-detail': { input: sliders['keep-detail'].input, label: 'Keep Detail' },
+  'bg-cleanup': { input: sliders['bg-cleanup'].input, label: 'Background Cleanup' },
+  'thickness': { input: sliders['thickness'].input, label: 'Line Thickness' },
+  'ref-opacity': { input: dom.refOpacity, label: 'Reference Opacity' },
+  'ref-levels': { input: sliders['ref-levels'].input, label: 'Reference Levels' },
 };
+
+function percentFromValue(value, min, max) {
+  if (max === min) return 0;
+  return Math.round(((value - min) / (max - min)) * 100);
+}
+
+function valueFromPercent(percent, min, max, step) {
+  const raw = min + (percent / 100) * (max - min);
+  const snapped = Math.round(raw / step) * step;
+  return Math.min(max, Math.max(min, snapped));
+}
 
 let activeQuickTarget = null;
 
@@ -307,13 +320,14 @@ function openQuickSlider(key) {
   const target = quickSliderTargets[key];
   if (!target) return;
   activeQuickTarget = key;
-  dom.quickSliderInput.min = target.input.min;
-  dom.quickSliderInput.max = target.input.max;
-  dom.quickSliderInput.step = target.input.step;
-  dom.quickSliderInput.value = target.input.value;
-  dom.quickSliderOutput.textContent = target.output.textContent;
-  dom.quickSliderLabel.textContent = target.label;
+  const min = Number(target.input.min);
+  const max = Number(target.input.max);
+  const percent = percentFromValue(Number(target.input.value), min, max);
+  dom.quickSliderInput.value = percent;
+  dom.quickSliderOutput.textContent = percent;
   dom.quickSliderOverlay.hidden = false;
+  dom.quickDescription.textContent = target.label;
+  dom.quickDescription.classList.add('visible');
   for (const btn of dom.quickIconButtons) {
     const active = btn.dataset.target === key;
     btn.classList.toggle('active', active);
@@ -324,6 +338,7 @@ function openQuickSlider(key) {
 function closeQuickSlider() {
   activeQuickTarget = null;
   dom.quickSliderOverlay.hidden = true;
+  dom.quickDescription.classList.remove('visible');
   for (const btn of dom.quickIconButtons) {
     btn.classList.remove('active');
     btn.setAttribute('aria-pressed', 'false');
@@ -346,8 +361,12 @@ dom.quickSliderOverlay.addEventListener('pointerdown', (e) => e.stopPropagation(
 dom.quickSliderInput.addEventListener('input', () => {
   if (!activeQuickTarget) return;
   const { input } = quickSliderTargets[activeQuickTarget];
-  input.value = dom.quickSliderInput.value;
-  dom.quickSliderOutput.textContent = dom.quickSliderInput.value;
+  const min = Number(input.min);
+  const max = Number(input.max);
+  const step = Number(input.step) || 1;
+  const percent = Number(dom.quickSliderInput.value);
+  input.value = valueFromPercent(percent, min, max, step);
+  dom.quickSliderOutput.textContent = percent;
   input.dispatchEvent(new Event('input', { bubbles: true }));
 });
 

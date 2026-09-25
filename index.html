@@ -10,7 +10,7 @@
      cache or a visitor's browser) for up to 10 minutes after a deploy. Bumping the
      ?v= below whenever js/ or css/ changes makes each new deploy a new URL, which
      no cache layer can serve stale — must match ASSET_VERSION in js/main.js. -->
-<link rel="stylesheet" href="css/styles.css?v=2">
+<link rel="stylesheet" href="css/styles.css?v=3">
 </head>
 <body>
 <header class="app-header">
@@ -50,8 +50,7 @@
         <div class="quick-slider-overlay" id="quick-slider-overlay" hidden>
           <button type="button" class="quick-slider-close" id="quick-slider-close" aria-label="Close slider">&times;</button>
           <output class="quick-slider-value" id="quick-slider-output"></output>
-          <input type="range" class="quick-slider-input" id="quick-slider-input">
-          <span class="quick-slider-title" id="quick-slider-label"></span>
+          <input type="range" class="quick-slider-input" id="quick-slider-input" min="0" max="100" step="1">
         </div>
         <div class="processing-overlay" id="processing-overlay" hidden>
           <div class="spinner"></div>
@@ -76,6 +75,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="14" width="4" height="7" fill="currentColor"/><rect x="10" y="9" width="4" height="12" fill="currentColor"/><rect x="17" y="4" width="4" height="17" fill="currentColor"/></svg>
         </button>
       </div>
+      <p class="quick-description" id="quick-description" aria-live="polite"></p>
     </div>
 
     <div class="controls-panel">
@@ -99,7 +99,8 @@
         </label>
 
         <label class="checkbox-row"><input type="checkbox" id="in-crisp"> Crisp lines (hard black &amp; white, no anti-aliasing)</label>
-        <label class="checkbox-row"><input type="checkbox" id="in-invert"> Invert lines</label>
+        <!-- Invert lines: disabled for now, kept in the DOM (hidden) so it can be re-enabled later by removing `hidden`. -->
+        <label class="checkbox-row" hidden><input type="checkbox" id="in-invert"> Invert lines</label>
       </details>
 
       <details class="control-group" open>
@@ -156,6 +157,6 @@
   </section>
 </main>
 
-<script type="module" src="js/main.js?v=2"></script>
+<script type="module" src="js/main.js?v=3"></script>
 </body>
 </html>

@@ -108,6 +108,19 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
   .quick-icon-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 }
 
+.quick-description {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  min-height: 1.2em;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.quick-description.visible { opacity: 1; transform: translateY(0); }
+
 /* Overlay slider sits on top of the canvas stage (right side) so the preview
    image keeps its full width instead of being squeezed by a sidebar. */
 .quick-slider-overlay {
@@ -149,25 +162,44 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
 }
 .quick-slider-input {
   flex: 1;
-  width: 32px;
+  width: 28px;
   margin: 0;
   touch-action: none;
-  accent-color: var(--accent);
   background: transparent;
-  /* Vertical range input: writing-mode is the modern standard, -webkit-appearance
-     the legacy Safari/older-Chromium fallback; browsers ignore what they don't support. */
+  /* Vertical range input: writing-mode is the modern standard. Track/thumb are
+     fully custom below so the scale position reads clearly through the overlay. */
   writing-mode: vertical-lr;
   direction: rtl;
-  -webkit-appearance: slider-vertical;
   appearance: none;
+  -webkit-appearance: none;
 }
-.quick-slider-title {
-  color: var(--text-dim);
-  font-size: 0.62rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  writing-mode: vertical-rl;
-  white-space: nowrap;
+.quick-slider-input::-webkit-slider-runnable-track {
+  width: 4px;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+}
+.quick-slider-input::-moz-range-track {
+  width: 4px;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+}
+.quick-slider-input::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+.quick-slider-input::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 /* ---------- Preview ---------- */
@@ -306,6 +338,11 @@ details.control-group[open] summary { margin-bottom: 10px; }
   accent-color: var(--accent);
 }
 
+/* On mobile these are obsolete: the quick-adjust icons + overlay slider replace them. */
+@media (max-width: 899px) {
+  .slider-row { display: none; }
+}
+
 .swatch-row { display: flex; gap: 10px; margin-top: 10px; }
 .swatch-btn {
   width: 44px;
@@ -333,6 +370,7 @@ details.control-group[open] summary { margin-bottom: 10px; }
 .field-row { display: flex; gap: 10px; margin: 10px 0; }
 .field-row label {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -340,6 +378,8 @@ details.control-group[open] summary { margin-bottom: 10px; }
   color: var(--text-dim);
 }
 .field-row input, .field-row select {
+  width: 100%;
+  min-width: 0;
   min-height: 40px;
   border-radius: 8px;
   border: 1px solid var(--border);
