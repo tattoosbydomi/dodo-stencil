@@ -337,6 +337,24 @@ details.control-group[open] summary { margin-bottom: 10px; }
   .desktop-only-group { display: none; }
 }
 
+.select-row {
+  display: block;
+  margin: 14px 0;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+.select-row span { display: block; margin-bottom: 6px; }
+.select-row select {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-raised);
+  color: var(--text);
+  padding: 6px 8px;
+  font-size: 0.95rem;
+}
+
 .swatch-row { display: flex; gap: 10px; margin-top: 10px; }
 .swatch-btn {
   width: 44px;

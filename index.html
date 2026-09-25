@@ -10,7 +10,7 @@
      cache or a visitor's browser) for up to 10 minutes after a deploy. Bumping the
      ?v= below whenever js/ or css/ changes makes each new deploy a new URL, which
      no cache layer can serve stale — must match ASSET_VERSION in js/main.js. -->
-<link rel="stylesheet" href="css/styles.css?v=5">
+<link rel="stylesheet" href="css/styles.css?v=6">
 </head>
 <body>
 <header class="app-header">
@@ -115,7 +115,17 @@
 
       <details class="control-group" open>
         <summary><h2>Settings</h2></summary>
-        <label class="checkbox-row"><input type="checkbox" id="in-crisp"> Monochromatic stencil lines</label>
+        <label class="select-row">
+          <span>Line Style</span>
+          <select id="in-line-style">
+            <option value="soft">Soft (Network)</option>
+            <option value="threshold">Crisp (Fixed Threshold)</option>
+            <option value="auto-threshold">Crisp (Auto Threshold)</option>
+            <option value="clean">Clean Lines (Skeleton + Re-stroke)</option>
+          </select>
+        </label>
+
+        <label class="checkbox-row"><input type="checkbox" id="in-presharpen"> Sharpen source photo before analysis</label>
 
         <label class="slider-row">
           <span>Reference Opacity <output id="out-ref-opacity"></output></span>
@@ -152,6 +162,6 @@
   </section>
 </main>
 
-<script type="module" src="js/main.js?v=4"></script>
+<script type="module" src="js/main.js?v=5"></script>
 </body>
 </html>

@@ -3,8 +3,8 @@
 // that touches js/ or css/. ASSET_VERSION is threaded through to the
 // dynamically-loaded worker.js and pipeline.js further down, since import
 // specifiers (static or dynamic) don't inherit this file's own query string.
-import { grayToRGBA, tintStencilOverReference } from './pipeline.js?v=1';
-const ASSET_VERSION = '1';
+import { grayToRGBA, tintStencilOverReference, unsharpMaskRGBA } from './pipeline.js?v=2';
+const ASSET_VERSION = '2';
 
 const MAX_PREVIEW_DIM = 900;
 const MAX_EXPORT_ANALYSIS_DIM = 1400; // cap the network's input size; final print can still be larger (see renderFullResLayers)
@@ -57,10 +57,19 @@ for (const id of sliderIds) {
   });
 }
 
-const checkboxIds = ['crisp', 'invert', 'ref-posterize'];
+const checkboxIds = ['invert', 'ref-posterize'];
 for (const id of checkboxIds) {
   el(`in-${id}`).addEventListener('change', schedulePreviewFinalize);
 }
+
+el('in-line-style').addEventListener('change', schedulePreviewFinalize);
+
+// Sharpening changes what the *network* sees, not just post-processing, so it
+// needs a full re-analysis (re-running the network), not the cheap finalize path
+// slider tweaks use.
+el('in-presharpen').addEventListener('change', () => {
+  if (previewAnalyzed) runPreviewAnalysis();
+});
 
 // --- Worker plumbing -------------------------------------------------
 const worker = new Worker(new URL(`./worker.js?v=${ASSET_VERSION}`, import.meta.url));
@@ -106,7 +115,7 @@ function readParams() {
   return {
     blackPoint: v('keep-detail'),
     whitePoint: v('bg-cleanup'),
-    crisp: el('in-crisp').checked,
+    lineStyle: el('in-line-style').value,
     lineThickness: v('thickness'),
     invertLines: el('in-invert').checked,
     referencePosterize: el('in-ref-posterize').checked,
@@ -173,7 +182,10 @@ async function runPreviewAnalysis() {
   if (!previewImageData) return;
   setOverlay(true, 'Analyzing artwork… (first run downloads the AI model, ~17MB)');
   try {
-    const buffer = previewImageData.data.slice().buffer;
+    const sourceRgba = el('in-presharpen').checked
+      ? unsharpMaskRGBA(previewImageData.data, previewW, previewH)
+      : previewImageData.data.slice();
+    const buffer = sourceRgba.buffer;
     await send({ type: 'previewAnalyze', buffer, width: previewW, height: previewH }, [buffer]);
     previewAnalyzed = true;
     await runPreviewFinalize();
@@ -399,7 +411,10 @@ async function renderFullResLayers() {
   ctx.drawImage(sourceBitmap, 0, 0, analysisW, analysisH);
   const imageData = ctx.getImageData(0, 0, analysisW, analysisH);
   const params = readParams();
-  const buffer = imageData.data.slice().buffer;
+  const sourceRgba = el('in-presharpen').checked
+    ? unsharpMaskRGBA(imageData.data, analysisW, analysisH)
+    : imageData.data.slice();
+  const buffer = sourceRgba.buffer;
   const result = await send({ type: 'export', buffer, width: analysisW, height: analysisH, params }, [buffer]);
 
   if (analysisW === widthPx && analysisH === heightPx) return result;

@@ -26,9 +26,10 @@ function getSession() {
   return sessionPromise;
 }
 
-// Cache of the most recently analyzed preview image, so slider tweaks
-// (levels/thickness/crisp/invert/reference) never re-run the network —
-// only a fresh photo upload does.
+// Cache of the most recently analyzed preview image, so slider/dropdown tweaks
+// (levels/thickness/line style/invert/reference) never re-run the network — only
+// a fresh photo upload or toggling "sharpen source photo" does (that one changes
+// what the network is actually looking at, see main.js).
 let previewCache = null; // { gray, rawLineMap, width, height }
 
 // The network internally downsamples/upsamples by some fixed stride, so an
@@ -88,7 +89,7 @@ async function runNetwork(rgba, width, height) {
 }
 
 function packLayers(pipeline, rawLineMap, gray, width, height, params) {
-  const lines = pipeline.finalizeLines(rawLineMap, params);
+  const lines = pipeline.finalizeLines(rawLineMap, width, height, params);
   const reference = pipeline.buildReferenceLayer(gray, params);
   return { lines, reference, width, height };
 }
