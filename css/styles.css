@@ -186,7 +186,11 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
 .quick-slider-input {
   position: relative;
   width: 28px;
-  height: 100%;
+  /* No explicit height: `.quick-slider-track`'s default align-items:stretch sizes
+     this to the wrapper's actual box. A `height: 100%` here previously resolved
+     against the viewport instead (the wrapper's flex-computed height isn't a
+     definite value for percentage purposes), letting the thumb travel far past
+     the visible line. */
   margin: 0;
   touch-action: none;
   background: transparent;
