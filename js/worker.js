@@ -140,6 +140,12 @@ self.onmessage = async (e) => {
 
     throw new Error(`Unknown message type: ${type}`);
   } catch (err) {
-    self.postMessage({ requestId, error: err.message });
+    // Not every failure here is a normal Error with a .message — onnxruntime-web's
+    // wasm backend can throw a bare wasm trap (e.g. on an out-of-memory allocation
+    // at large input sizes) whose .message is undefined. Posting that straight
+    // through made `error: undefined`, which every caller's `if (error)` check
+    // reads as "no error", silently treating a failed analysis as a success.
+    const message = (err && err.message) ? err.message : String(err);
+    self.postMessage({ requestId, error: message });
   }
 };

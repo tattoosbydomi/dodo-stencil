@@ -4,10 +4,26 @@
 // dynamically-loaded worker.js and pipeline.js further down, since import
 // specifiers (static or dynamic) don't inherit this file's own query string.
 import { grayToRGBA, tintStencilOverReference, unsharpMaskRGBA } from './pipeline.js?v=3';
-const ASSET_VERSION = '3';
+const ASSET_VERSION = '4';
 
-const MAX_PREVIEW_DIM = 900;
-const MAX_EXPORT_ANALYSIS_DIM = 1400; // cap the network's input size; final print can still be larger (see renderFullResLayers)
+// Used for BOTH the live preview and the export analysis step (see renderFullResLayers) —
+// deliberately the same constant, not two independently-tunable ones. The network's output
+// isn't just "softer at lower res", it's a genuinely different result: on a detailed/textured
+// photo, analyzing at a higher resolution surfaces real fine-grained noise (skin/hair texture)
+// that a lower resolution smooths away before the network ever sees it. That used to be a
+// separate, higher constant for export, so the exact same settings the preview looked clean
+// with could come back visibly speckly after download — what you saw was never actually what
+// you'd get. The final print/DPI size is still reached afterwards via a smoothing upscale
+// (unaffected by this), so export dimensions are unchanged — only the network's input res is.
+//
+// 1200 (up from 900) was picked from measured wasm inference time, not guessed: on this
+// runtime/model, analysis takes ~16.5s at 900px, ~28.8s at 1200px, and reliably FAILS outright
+// above ~1400px (onnxruntime-web's wasm backend runs out of memory and throws — see worker.js's
+// catch handler for why that used to fail silently instead of showing an error). 1200 gets
+// noticeably more real detail than 900 while leaving real margin below that wall, since it's
+// likely lower still on weaker/mobile hardware than the desktop this was measured on. Don't
+// push this past ~1300-1400 without re-measuring on the actual weakest device you support.
+const MAX_PREVIEW_DIM = 1200;
 const DEBOUNCE_MS = 130;
 
 const el = (id) => document.getElementById(id);
@@ -245,7 +261,11 @@ async function runPreviewAnalysis() {
     await runPreviewFinalize();
   } catch (err) {
     console.error(err);
-    alert('Could not analyze the image: ' + err.message);
+    // A bare numeric/unreadable message here is onnxruntime-web's wasm backend running out
+    // of memory (see MAX_PREVIEW_DIM's comment) rather than a normal JS error — tell the user
+    // something actionable instead of surfacing the raw wasm exception value.
+    const readable = /^[a-z]/i.test(err.message) ? err.message : 'the image is too large or detailed to analyze on this device';
+    alert('Could not analyze the image: ' + readable);
   } finally {
     setOverlay(false);
   }
@@ -461,10 +481,10 @@ function updateOutputSizeHint() {
 
 async function renderFullResLayers() {
   const { widthPx, heightPx } = computeOutputPixelSize();
-  // The network runs at a capped resolution (quality plateaus above this, and it
-  // keeps export time reasonable); the result is upscaled to the final print size,
-  // which works well since line art is mostly smooth curves rather than fine texture.
-  const analysisScale = Math.min(1, MAX_EXPORT_ANALYSIS_DIM / Math.max(widthPx, heightPx));
+  // Same cap as the live preview (MAX_PREVIEW_DIM) — see its comment for why. The
+  // result is upscaled to the final print size via smoothing afterwards, same as
+  // it always was; only the network's input resolution is unified with preview.
+  const analysisScale = Math.min(1, MAX_PREVIEW_DIM / Math.max(widthPx, heightPx));
   const analysisW = Math.max(1, Math.round(widthPx * analysisScale));
   const analysisH = Math.max(1, Math.round(heightPx * analysisScale));
 
@@ -532,7 +552,16 @@ async function withButtonBusy(button, label, fn) {
   const original = button.textContent;
   button.disabled = true;
   button.textContent = label;
-  try { await fn(); } finally { button.disabled = false; button.textContent = original; }
+  try {
+    await fn();
+  } catch (err) {
+    console.error(err);
+    const readable = /^[a-z]/i.test(err.message) ? err.message : 'the image is too large or detailed to analyze on this device';
+    alert('Could not render the export: ' + readable);
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
 }
 
 dom.exportStencilBtn.addEventListener('click', () => {
