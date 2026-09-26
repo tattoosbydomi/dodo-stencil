@@ -10,7 +10,7 @@
      cache or a visitor's browser) for up to 10 minutes after a deploy. Bumping the
      ?v= below whenever js/ or css/ changes makes each new deploy a new URL, which
      no cache layer can serve stale — must match ASSET_VERSION in js/main.js. -->
-<link rel="stylesheet" href="css/styles.css?v=6">
+<link rel="stylesheet" href="css/styles.css?v=7">
 </head>
 <body>
 <header class="app-header">
@@ -49,6 +49,7 @@
           <output class="quick-slider-value" id="quick-slider-output"></output>
           <div class="quick-slider-track">
             <input type="range" class="quick-slider-input" id="quick-slider-input" min="0" max="100" step="1">
+            <div class="quick-slider-dot" id="quick-slider-dot" aria-hidden="true"></div>
           </div>
         </div>
         <div class="processing-overlay" id="processing-overlay" hidden>
@@ -162,6 +163,6 @@
   </section>
 </main>
 
-<script type="module" src="js/main.js?v=5"></script>
+<script type="module" src="js/main.js?v=6"></script>
 </body>
 </html>

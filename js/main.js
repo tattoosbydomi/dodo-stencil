@@ -29,6 +29,7 @@ const dom = {
   quickIconButtons: Array.from(document.querySelectorAll('.quick-icon-btn')),
   quickSliderOverlay: el('quick-slider-overlay'),
   quickSliderInput: el('quick-slider-input'),
+  quickSliderDot: el('quick-slider-dot'),
   quickSliderOutput: el('quick-slider-output'),
   quickSliderClose: el('quick-slider-close'),
   quickDescription: el('quick-description'),
@@ -47,12 +48,24 @@ const sliderIds = [
   'keep-detail', 'bg-cleanup', 'thickness',
   'ref-levels',
 ];
+// Reference Levels is a literal tone-band count (see percentFromValue's caller
+// below for the same rule on the mobile quick-slider) — every other slider here
+// shows a normalised 0-100 reading instead of its real underlying range, so the
+// same control reads the same whether you're adjusting it here or via the
+// mobile quick-adjust overlay.
+const RAW_SCALE_IDS = new Set(['ref-levels']);
 const sliders = {};
 for (const id of sliderIds) {
   sliders[id] = { input: el(`in-${id}`), output: el(`out-${id}`) };
-  sliders[id].output.textContent = sliders[id].input.value;
+  const updateOutput = () => {
+    const { input, output } = sliders[id];
+    output.textContent = RAW_SCALE_IDS.has(id)
+      ? input.value
+      : percentFromValue(Number(input.value), Number(input.min), Number(input.max));
+  };
+  updateOutput();
   sliders[id].input.addEventListener('input', () => {
-    sliders[id].output.textContent = sliders[id].input.value;
+    updateOutput();
     schedulePreviewFinalize();
   });
 }
@@ -309,6 +322,16 @@ function valueFromPercent(percent, min, max, step) {
   return Math.min(max, Math.max(min, snapped));
 }
 
+// Positions the custom dot to match the input's current value — see the CSS
+// comment on .quick-slider-dot for why this isn't just the native thumb.
+function updateQuickSliderDot() {
+  const min = Number(dom.quickSliderInput.min);
+  const max = Number(dom.quickSliderInput.max);
+  const value = Number(dom.quickSliderInput.value);
+  const percent = percentFromValue(value, min, max);
+  dom.quickSliderDot.style.top = `${100 - percent}%`; // higher value = higher up
+}
+
 let activeQuickTarget = null;
 
 function openQuickSlider(key) {
@@ -331,6 +354,7 @@ function openQuickSlider(key) {
     dom.quickSliderInput.value = percent;
     dom.quickSliderOutput.textContent = percent;
   }
+  updateQuickSliderDot();
   dom.quickSliderOverlay.hidden = false;
   dom.quickDescription.textContent = target.label;
   dom.quickDescription.classList.add('visible');
@@ -376,6 +400,7 @@ dom.quickSliderInput.addEventListener('input', () => {
     input.value = valueFromPercent(percent, min, max, step);
     dom.quickSliderOutput.textContent = percent;
   }
+  updateQuickSliderDot();
   input.dispatchEvent(new Event('input', { bubbles: true }));
 });
 

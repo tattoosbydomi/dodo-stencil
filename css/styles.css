@@ -160,16 +160,18 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
   font-size: 0.72rem;
   font-variant-numeric: tabular-nums;
 }
-/* Wrapper draws the visible track line itself (centered via absolute + translateX),
-   rather than relying on the native runnable-track pseudo-element to center inside
-   the input's box — under writing-mode: vertical-lr that native centering isn't
-   reliable across browsers, which is what made the thumb read as off-line. */
+/* The visible line and dot are both plain, absolutely-positioned elements we
+   place ourselves (see main.js's updateQuickSliderDot) — NOT the native range
+   thumb/track. A real <input type="range"> rotated via writing-mode renders its
+   thumb inconsistently across browsers/engines (centering it on the thickness
+   axis is not reliably implemented), which is what caused the dot to repeatedly
+   drift off the line. The <input> itself is kept for pointer/touch/keyboard
+   interaction and accessibility, but drawn fully transparent; it never paints
+   anything visible, so no browser's thumb-rendering quirks can show through. */
 .quick-slider-track {
   position: relative;
   flex: 1;
   width: 28px;
-  display: flex;
-  justify-content: center;
 }
 .quick-slider-track::before {
   content: '';
@@ -184,48 +186,29 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
   pointer-events: none;
 }
 .quick-slider-input {
-  position: relative;
-  width: 28px;
-  /* No explicit height: `.quick-slider-track`'s default align-items:stretch sizes
-     this to the wrapper's actual box. A `height: 100%` here previously resolved
-     against the viewport instead (the wrapper's flex-computed height isn't a
-     definite value for percentage purposes), letting the thumb travel far past
-     the visible line. */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   margin: 0;
   touch-action: none;
-  background: transparent;
-  /* Vertical range input: writing-mode is the modern standard. The native track
-     is made transparent (see below) since the wrapper's ::before draws the line. */
+  opacity: 0;
   writing-mode: vertical-lr;
   direction: rtl;
   appearance: none;
   -webkit-appearance: none;
 }
-.quick-slider-input::-webkit-slider-runnable-track {
-  width: 28px;
-  background: transparent;
-}
-.quick-slider-input::-moz-range-track {
-  width: 28px;
-  background: transparent;
-}
-.quick-slider-input::-webkit-slider-thumb {
-  appearance: none;
-  -webkit-appearance: none;
+.quick-slider-dot {
+  position: absolute;
+  left: 50%;
   width: 18px;
   height: 18px;
   border-radius: 50%;
   background: var(--accent);
   border: 2px solid white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-}
-.quick-slider-input::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 2px solid white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
 }
 
 /* ---------- Preview ---------- */
