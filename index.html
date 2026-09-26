@@ -55,6 +55,49 @@
       <button class="primary-btn" id="export-colour-btn" data-mode-btn="colour">Download Stencil + Reference (Colour)</button>
     </div>
 
+    <!-- Settings: which rows are visible depends on the selected mode (see main.js's
+         updateModeVisibility) — DOM order is the union of every mode's order, so
+         showing any subset preserves the right relative order. Always above the
+         preview box, per instruction. -->
+    <details class="control-group" id="settings-group" open>
+      <summary><h2>Settings</h2></summary>
+
+      <label class="select-row" id="row-model">
+        <span>Model</span>
+        <select id="in-line-style">
+          <option value="soft">Soft (Network)</option>
+          <option value="threshold">Crisp (Fixed Threshold)</option>
+          <option value="auto-threshold">Crisp (Auto Threshold)</option>
+          <option value="clean">Clean Lines (Skeleton + Re-stroke)</option>
+        </select>
+      </label>
+
+      <label class="checkbox-row" id="row-sharpen"><input type="checkbox" id="in-presharpen"> Sharpen source photo before analysis</label>
+
+      <label class="checkbox-row" id="row-ref-posterize"><input type="checkbox" id="in-ref-posterize"> Simplify reference image into tone bands</label>
+
+      <label class="slider-row" id="row-ref-levels">
+        <span>Reference Levels <output id="out-ref-levels"></output></span>
+        <input type="range" id="in-ref-levels" min="4" max="16" step="1" value="8">
+      </label>
+
+      <label class="slider-row" id="row-ref-opacity">
+        <span>Reference Opacity <output id="out-ref-opacity"></output></span>
+        <input type="range" id="in-ref-opacity" min="0" max="100" step="1" value="60">
+      </label>
+
+      <div class="swatch-block" id="row-colour">
+        <span>Stencil Colour</span>
+        <div class="swatch-row" id="colour-swatches" role="radiogroup" aria-label="Stencil colour">
+          <button class="swatch-btn active" data-colour="#FF007F" style="--swatch: #FF007F" aria-label="Electric magenta" aria-pressed="true"></button>
+          <button class="swatch-btn" data-colour="#FF0000" style="--swatch: #FF0000" aria-label="Vivid scarlet" aria-pressed="false"></button>
+          <button class="swatch-btn" data-colour="#FF5500" style="--swatch: #FF5500" aria-label="Safety orange" aria-pressed="false"></button>
+          <button class="swatch-btn" data-colour="#20D000" style="--swatch: #20D000" aria-label="Chartreuse lime" aria-pressed="false"></button>
+          <button class="swatch-btn" data-colour="#00AEEF" style="--swatch: #00AEEF" aria-label="Electric cyan" aria-pressed="false"></button>
+        </div>
+      </div>
+    </details>
+
     <div class="canvas-viewport" id="canvas-viewport">
       <div class="canvas-stage" id="canvas-stage">
         <canvas id="canvas-original" hidden></canvas>
@@ -95,48 +138,6 @@
       <!-- Invert lines: disabled for now, kept in the DOM (hidden) so it can be re-enabled later by removing `hidden`. -->
       <label class="checkbox-row" hidden><input type="checkbox" id="in-invert"> Invert lines</label>
     </div>
-
-    <!-- Settings: which rows are visible depends on the selected mode (see main.js's
-         updateModeVisibility) — DOM order is the union of every mode's order, so
-         showing any subset preserves the right relative order. -->
-    <details class="control-group" id="settings-group" open>
-      <summary><h2>Settings</h2></summary>
-
-      <label class="select-row" id="row-model">
-        <span>Model</span>
-        <select id="in-line-style">
-          <option value="soft">Soft (Network)</option>
-          <option value="threshold">Crisp (Fixed Threshold)</option>
-          <option value="auto-threshold">Crisp (Auto Threshold)</option>
-          <option value="clean">Clean Lines (Skeleton + Re-stroke)</option>
-        </select>
-      </label>
-
-      <label class="checkbox-row" id="row-sharpen"><input type="checkbox" id="in-presharpen"> Sharpen source photo before analysis</label>
-
-      <label class="checkbox-row" id="row-ref-posterize"><input type="checkbox" id="in-ref-posterize"> Simplify reference image into tone bands</label>
-
-      <label class="slider-row" id="row-ref-levels">
-        <span>Reference Levels <output id="out-ref-levels"></output></span>
-        <input type="range" id="in-ref-levels" min="4" max="16" step="1" value="8">
-      </label>
-
-      <label class="slider-row" id="row-ref-opacity">
-        <span>Reference Opacity <output id="out-ref-opacity"></output></span>
-        <input type="range" id="in-ref-opacity" min="0" max="100" step="1" value="100">
-      </label>
-
-      <div class="swatch-block" id="row-colour">
-        <span>Stencil Colour</span>
-        <div class="swatch-row" id="colour-swatches" role="radiogroup" aria-label="Stencil colour">
-          <button class="swatch-btn active" data-colour="#FF007F" style="--swatch: #FF007F" aria-label="Electric magenta" aria-pressed="true"></button>
-          <button class="swatch-btn" data-colour="#FF0000" style="--swatch: #FF0000" aria-label="Vivid scarlet" aria-pressed="false"></button>
-          <button class="swatch-btn" data-colour="#FF5500" style="--swatch: #FF5500" aria-label="Safety orange" aria-pressed="false"></button>
-          <button class="swatch-btn" data-colour="#20D000" style="--swatch: #20D000" aria-label="Chartreuse lime" aria-pressed="false"></button>
-          <button class="swatch-btn" data-colour="#00AEEF" style="--swatch: #00AEEF" aria-label="Electric cyan" aria-pressed="false"></button>
-        </div>
-      </div>
-    </details>
 
   </section>
 </main>
