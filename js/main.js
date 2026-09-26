@@ -3,8 +3,8 @@
 // that touches js/ or css/. ASSET_VERSION is threaded through to the
 // dynamically-loaded worker.js and pipeline.js further down, since import
 // specifiers (static or dynamic) don't inherit this file's own query string.
-import { grayToRGBA, tintStencilOverReference, unsharpMaskRGBA } from './pipeline.js?v=2';
-const ASSET_VERSION = '2';
+import { grayToRGBA, tintStencilOverReference, unsharpMaskRGBA } from './pipeline.js?v=3';
+const ASSET_VERSION = '3';
 
 const MAX_PREVIEW_DIM = 900;
 const MAX_EXPORT_ANALYSIS_DIM = 1400; // cap the network's input size; final print can still be larger (see renderFullResLayers)

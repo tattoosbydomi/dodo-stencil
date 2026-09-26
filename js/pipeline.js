@@ -272,7 +272,11 @@ export function finalizeLines(rawLineMap, width, height, params) {
   } else if (style === 'clean') {
     lines = binarize(lines, otsuThreshold(lines));
     lines = skeletonize(lines, width, height);
-    const radius = Math.max(1, Math.min(5, Math.round(1 + shift / 10)));
+    // radius 0 = no dilation at all, i.e. the raw 1px skeleton — the thinnest a
+    // line can be. Line Thickness only ever ADDS width on top of that from here;
+    // it used to have a floor of 1 (a forced "+"-shaped halo on every skeleton
+    // pixel), so "thinnest" was never actually thin — that was the bug.
+    const radius = Math.max(0, Math.min(4, Math.round(shift / 10)));
     lines = dilate(lines, width, height, radius);
   }
 
