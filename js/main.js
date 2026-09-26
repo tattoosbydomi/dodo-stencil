@@ -35,6 +35,10 @@ const dom = {
   uploadView: el('upload-view'),
   editorView: el('editor-view'),
   stage: el('canvas-stage'),
+  viewport: el('canvas-viewport'),
+  zoomInBtn: el('zoom-in-btn'),
+  zoomOutBtn: el('zoom-out-btn'),
+  zoomResetBtn: el('zoom-reset-btn'),
   canvasOriginal: el('canvas-original'),
   canvasStencil: el('canvas-stencil'),
   canvasReference: el('canvas-reference'),
@@ -169,6 +173,7 @@ dom.resetBtn.addEventListener('click', () => {
   previewLayers = null;
   previewAnalyzed = false;
   closeQuickSlider();
+  resetZoom();
   dom.fileInput.value = '';
   dom.editorView.hidden = true;
   dom.uploadView.hidden = false;
@@ -216,10 +221,89 @@ function resizeDisplayCanvasesAndRedraw() {
 }
 window.addEventListener('resize', resizeDisplayCanvasesAndRedraw);
 
+// --- Zoom (inspect the preview at print-scale magnification before exporting) ---
+// The preview's analysis resolution now matches export's (see MAX_PREVIEW_DIM above), so the
+// underlying line data is the same either way — but a small on-screen box still naturally hides
+// fine speckle that the same data reveals once blown up to print size (shrinking an image blends
+// small dark specks away; enlarging does the opposite). Zoom lets you view that SAME data at a
+// bigger size — enlarging .canvas-stage past its "fit" box makes setupDisplayCanvas (above) size
+// the display canvases larger too, so blitToDisplay's smoothing upscale shows you what you'd
+// actually see enlarged, in real time, while you're still adjusting sliders.
+let zoomLevel = 1;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 4;
+let zoomRafPending = false;
+
+function scheduleZoomRedraw() {
+  if (zoomRafPending) return;
+  zoomRafPending = true;
+  requestAnimationFrame(() => {
+    zoomRafPending = false;
+    resizeDisplayCanvasesAndRedraw();
+  });
+}
+
+function applyZoom(newZoom) {
+  zoomLevel = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, newZoom));
+  if (zoomLevel === 1) {
+    dom.stage.style.width = '';
+    dom.stage.style.height = '';
+  } else {
+    const rect = dom.viewport.getBoundingClientRect();
+    dom.stage.style.width = `${rect.width * zoomLevel}px`;
+    dom.stage.style.height = `${rect.height * zoomLevel}px`;
+  }
+  dom.zoomResetBtn.textContent = zoomLevel === 1 ? 'Fit' : `${Math.round(zoomLevel * 100)}%`;
+  scheduleZoomRedraw();
+}
+
+function resetZoom() {
+  zoomLevel = 1;
+  dom.stage.style.width = '';
+  dom.stage.style.height = '';
+  dom.zoomResetBtn.textContent = 'Fit';
+}
+
+dom.zoomInBtn.addEventListener('click', () => applyZoom(zoomLevel + 0.5));
+dom.zoomOutBtn.addEventListener('click', () => applyZoom(zoomLevel - 0.5));
+dom.zoomResetBtn.addEventListener('click', () => applyZoom(1));
+
+// ctrl/cmd+wheel to zoom (plain wheel stays page/viewport scroll, so panning a
+// zoomed-in preview or scrolling past it both keep working as expected).
+dom.viewport.addEventListener('wheel', (e) => {
+  if (!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  applyZoom(zoomLevel + (e.deltaY < 0 ? 0.25 : -0.25));
+}, { passive: false });
+
+let pinchStartDist = null;
+let pinchStartZoom = 1;
+function touchDistance(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+dom.viewport.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 2) {
+    pinchStartDist = touchDistance(e.touches);
+    pinchStartZoom = zoomLevel;
+  }
+}, { passive: true });
+dom.viewport.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 2 && pinchStartDist) {
+    e.preventDefault();
+    applyZoom(pinchStartZoom * (touchDistance(e.touches) / pinchStartDist));
+  }
+}, { passive: false });
+dom.viewport.addEventListener('touchend', (e) => {
+  if (e.touches.length < 2) pinchStartDist = null;
+});
+
 async function loadFile(file) {
   const bitmap = await createImageBitmap(file);
   sourceBitmap = bitmap;
   previewAnalyzed = false;
+  resetZoom();
 
   const scale = Math.min(1, MAX_PREVIEW_DIM / Math.max(bitmap.width, bitmap.height));
   previewW = Math.max(1, Math.round(bitmap.width * scale));
@@ -231,7 +315,7 @@ async function loadFile(file) {
   ctx.drawImage(bitmap, 0, 0, previewW, previewH);
   previewImageData = ctx.getImageData(0, 0, previewW, previewH);
 
-  dom.stage.style.aspectRatio = `${previewW} / ${previewH}`;
+  dom.viewport.style.aspectRatio = `${previewW} / ${previewH}`;
 
   dom.uploadView.hidden = true;
   dom.editorView.hidden = false;

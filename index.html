@@ -10,7 +10,7 @@
      cache or a visitor's browser) for up to 10 minutes after a deploy. Bumping the
      ?v= below whenever js/ or css/ changes makes each new deploy a new URL, which
      no cache layer can serve stale — must match ASSET_VERSION in js/main.js. -->
-<link rel="stylesheet" href="css/styles.css?v=7">
+<link rel="stylesheet" href="css/styles.css?v=9">
 </head>
 <body>
 <header class="app-header">
@@ -39,23 +39,32 @@
         <button class="mode-btn" data-mode="colour" role="tab" aria-selected="false">ST + RF</button>
       </div>
 
-      <div class="canvas-stage" id="canvas-stage">
-        <canvas id="canvas-original" hidden></canvas>
-        <canvas id="canvas-stencil"></canvas>
-        <canvas id="canvas-reference" hidden></canvas>
-        <canvas id="canvas-colour" hidden></canvas>
-        <div class="quick-slider-overlay" id="quick-slider-overlay" hidden>
-          <button type="button" class="quick-slider-close" id="quick-slider-close" aria-label="Close slider">&times;</button>
-          <output class="quick-slider-value" id="quick-slider-output"></output>
-          <div class="quick-slider-track">
-            <input type="range" class="quick-slider-input" id="quick-slider-input" min="0" max="100" step="1">
-            <div class="quick-slider-dot" id="quick-slider-dot" aria-hidden="true"></div>
+      <div class="canvas-viewport" id="canvas-viewport">
+        <div class="canvas-stage" id="canvas-stage">
+          <canvas id="canvas-original" hidden></canvas>
+          <canvas id="canvas-stencil"></canvas>
+          <canvas id="canvas-reference" hidden></canvas>
+          <canvas id="canvas-colour" hidden></canvas>
+          <div class="quick-slider-overlay" id="quick-slider-overlay" hidden>
+            <button type="button" class="quick-slider-close" id="quick-slider-close" aria-label="Close slider">&times;</button>
+            <output class="quick-slider-value" id="quick-slider-output"></output>
+            <div class="quick-slider-track">
+              <input type="range" class="quick-slider-input" id="quick-slider-input" min="0" max="100" step="1">
+              <div class="quick-slider-dot" id="quick-slider-dot" aria-hidden="true"></div>
+            </div>
+          </div>
+          <div class="processing-overlay" id="processing-overlay" hidden>
+            <div class="spinner"></div>
+            <span id="processing-label">Processing&hellip;</span>
           </div>
         </div>
-        <div class="processing-overlay" id="processing-overlay" hidden>
-          <div class="spinner"></div>
-          <span id="processing-label">Processing&hellip;</span>
-        </div>
+      </div>
+
+      <div class="zoom-controls" id="zoom-controls">
+        <button type="button" class="zoom-btn" id="zoom-out-btn" aria-label="Zoom out">&minus;</button>
+        <button type="button" class="zoom-btn zoom-fit-btn" id="zoom-reset-btn">Fit</button>
+        <button type="button" class="zoom-btn" id="zoom-in-btn" aria-label="Zoom in">+</button>
+        <span class="zoom-hint">Pinch or scroll to zoom &mdash; inspect at print size before exporting</span>
       </div>
 
       <div class="quick-controls" id="quick-controls" role="tablist" aria-label="Quick adjust">
@@ -163,6 +172,6 @@
   </section>
 </main>
 
-<script type="module" src="js/main.js?v=10"></script>
+<script type="module" src="js/main.js?v=11"></script>
 </body>
 </html>

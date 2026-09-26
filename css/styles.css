@@ -76,7 +76,12 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
 
 @media (min-width: 900px) {
   .editor-view { flex-direction: row; align-items: flex-start; }
-  .preview-panel { flex: 1 1 60%; position: sticky; top: 76px; }
+  /* min-width: 0 overrides a flex item's default automatic minimum size, which is its content's
+     min-content size — without this, .canvas-viewport's zoomed-in child (canvas-stage, given an
+     explicit large px width by main.js's applyZoom) would force .preview-panel itself to grow to
+     fit it, which then grows .canvas-viewport's own width:100%, compounding further with every
+     zoom step instead of scrolling within a fixed-size box. */
+  .preview-panel { flex: 1 1 60%; min-width: 0; position: sticky; top: 76px; }
   .controls-panel { flex: 1 1 40%; max-width: 420px; }
 }
 
@@ -232,13 +237,22 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
 }
 .mode-btn.active { background: var(--accent); color: white; }
 
-.canvas-stage {
+/* Owns the aspect-ratio/background/border-radius that .canvas-stage used to own
+   alone, plus overflow: auto — once JS grows .canvas-stage past 100% for zoom
+   (see main.js's applyZoom), this is what lets you scroll/drag to pan around it,
+   for free, with no custom drag code. */
+.canvas-viewport {
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
   background: var(--panel);
   border-radius: var(--radius);
-  overflow: hidden;
+  overflow: auto;
+}
+.canvas-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
   user-select: none;
 }
 .canvas-stage canvas {
@@ -252,6 +266,31 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
 #canvas-stencil { z-index: 2; }
 #canvas-reference { z-index: 2; }
 #canvas-colour { z-index: 3; }
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.zoom-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+}
+.zoom-fit-btn { width: auto; border-radius: 999px; padding: 0 14px; font-size: 0.8rem; }
+.zoom-hint {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.3;
+}
 
 .processing-overlay {
   position: absolute;
@@ -400,5 +439,5 @@ details.control-group[open] summary { margin-bottom: 10px; }
 .ghost-btn { width: auto; background: transparent; color: var(--text-dim); border: 1px solid var(--border); padding: 6px 14px; min-height: 36px; }
 
 @media (min-width: 600px) {
-  .canvas-stage { aspect-ratio: 4 / 3; }
+  .canvas-viewport { aspect-ratio: 4 / 3; }
 }
