@@ -159,6 +159,47 @@ dom.resetBtn.addEventListener('click', () => {
   dom.resetBtn.hidden = true;
 });
 
+// The canvases you actually see are sized to the real screen (CSS box × devicePixelRatio),
+// decoupled from previewW/previewH (the resolution fed to the network). Without this, a
+// canvas whose pixel backing store is smaller than its on-screen box gets stretched by the
+// browser to fill it — invisible for "Soft" mode since its blur already blends through the
+// stretch, but a hard-edged binarized/skeletonized line has nothing to blend through, so the
+// same stretch reads as blocky pixelation. Worse again on any HiDPI/retina screen, where the
+// physical pixel count is even higher than CSS px. blitToDisplay stages the actual (lower-res)
+// processed pixels on an offscreen canvas, then draws that onto the real one with smoothing —
+// the browser's own image-scaling filter is what removes the aliasing, matching what "Soft"
+// mode gets from the network's own blur.
+const displayScratchCanvas = document.createElement('canvas');
+const displayScratchCtx = displayScratchCanvas.getContext('2d');
+
+function setupDisplayCanvas(canvas) {
+  const rect = dom.stage.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.round(rect.width * dpr));
+  canvas.height = Math.max(1, Math.round(rect.height * dpr));
+}
+
+function blitToDisplay(displayCanvas, rgba, w, h) {
+  displayScratchCanvas.width = w;
+  displayScratchCanvas.height = h;
+  displayScratchCtx.putImageData(new ImageData(rgba, w, h), 0, 0);
+  const ctx = displayCanvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
+  ctx.drawImage(displayScratchCanvas, 0, 0, w, h, 0, 0, displayCanvas.width, displayCanvas.height);
+}
+
+function resizeDisplayCanvasesAndRedraw() {
+  if (!previewImageData) return;
+  for (const canvas of [dom.canvasOriginal, dom.canvasStencil, dom.canvasReference, dom.canvasColour]) {
+    setupDisplayCanvas(canvas);
+  }
+  blitToDisplay(dom.canvasOriginal, previewImageData.data, previewW, previewH);
+  renderAllCanvases();
+}
+window.addEventListener('resize', resizeDisplayCanvasesAndRedraw);
+
 async function loadFile(file) {
   const bitmap = await createImageBitmap(file);
   sourceBitmap = bitmap;
@@ -174,16 +215,16 @@ async function loadFile(file) {
   ctx.drawImage(bitmap, 0, 0, previewW, previewH);
   previewImageData = ctx.getImageData(0, 0, previewW, previewH);
 
-  dom.canvasOriginal.width = previewW; dom.canvasOriginal.height = previewH;
-  dom.canvasStencil.width = previewW; dom.canvasStencil.height = previewH;
-  dom.canvasReference.width = previewW; dom.canvasReference.height = previewH;
-  dom.canvasColour.width = previewW; dom.canvasColour.height = previewH;
-  dom.canvasOriginal.getContext('2d').putImageData(previewImageData, 0, 0);
   dom.stage.style.aspectRatio = `${previewW} / ${previewH}`;
 
   dom.uploadView.hidden = true;
   dom.editorView.hidden = false;
   dom.resetBtn.hidden = false;
+
+  for (const canvas of [dom.canvasOriginal, dom.canvasStencil, dom.canvasReference, dom.canvasColour]) {
+    setupDisplayCanvas(canvas);
+  }
+  blitToDisplay(dom.canvasOriginal, previewImageData.data, previewW, previewH);
 
   updateOutputSizeHint();
   setMode(currentMode);
@@ -238,23 +279,20 @@ function setOverlay(visible, label) {
 function renderStencilCanvas() {
   if (!previewLayers) return;
   const rgba = grayToRGBA(previewLayers.lines, previewLayers.width, previewLayers.height);
-  const imageData = new ImageData(rgba, previewLayers.width, previewLayers.height);
-  dom.canvasStencil.getContext('2d').putImageData(imageData, 0, 0);
+  blitToDisplay(dom.canvasStencil, rgba, previewLayers.width, previewLayers.height);
 }
 
 function renderReferenceCanvas() {
   if (!previewLayers) return;
   const rgba = grayToRGBA(previewLayers.reference, previewLayers.width, previewLayers.height);
-  const imageData = new ImageData(rgba, previewLayers.width, previewLayers.height);
-  dom.canvasReference.getContext('2d').putImageData(imageData, 0, 0);
+  blitToDisplay(dom.canvasReference, rgba, previewLayers.width, previewLayers.height);
 }
 
 function renderColourCanvas() {
   if (!previewLayers) return;
   const refOpacity = Number(dom.refOpacity.value) / 100;
   const rgba = tintStencilOverReference(previewLayers.lines, previewLayers.reference, previewLayers.width, previewLayers.height, stencilColour, refOpacity);
-  const imageData = new ImageData(rgba, previewLayers.width, previewLayers.height);
-  dom.canvasColour.getContext('2d').putImageData(imageData, 0, 0);
+  blitToDisplay(dom.canvasColour, rgba, previewLayers.width, previewLayers.height);
 }
 
 function renderAllCanvases() {
