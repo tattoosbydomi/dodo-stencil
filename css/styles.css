@@ -72,149 +72,9 @@ h2 { font-size: 1rem; letter-spacing: 0.02em; text-transform: uppercase; color: 
 .upload-hint { font-size: 0.85rem; max-width: 32ch; }
 
 /* ---------- Editor layout ---------- */
+/* Single stacked column on every breakpoint: mode tabs -> export row -> preview
+   -> mode-dependent sliders/settings (see main.js's updateModeVisibility). */
 .editor-view { display: flex; flex-direction: column; gap: 16px; }
-
-@media (min-width: 900px) {
-  .editor-view { flex-direction: row; align-items: flex-start; }
-  /* min-width: 0 overrides a flex item's default automatic minimum size, which is its content's
-     min-content size — without this, .canvas-viewport's zoomed-in child (canvas-stage, given an
-     explicit large px width by main.js's applyZoom) would force .preview-panel itself to grow to
-     fit it, which then grows .canvas-viewport's own width:100%, compounding further with every
-     zoom step instead of scrolling within a fixed-size box. */
-  .preview-panel { flex: 1 1 60%; min-width: 0; position: sticky; top: 76px; }
-  .controls-panel { flex: 1 1 40%; max-width: 420px; }
-}
-
-/* ---------- Mobile quick-adjust icon row + overlay slider ---------- */
-.quick-controls { display: none; }
-
-@media (max-width: 899px) {
-  .quick-controls {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 12px;
-  }
-  .quick-icon-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    border: 1px solid var(--border);
-    background: var(--panel);
-    color: var(--text-dim);
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-  .quick-icon-btn svg { width: 20px; height: 20px; }
-  .quick-icon-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-}
-
-.quick-description {
-  margin: 8px 0 0;
-  text-align: center;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text);
-  min-height: 1.2em;
-  opacity: 0;
-  transform: translateY(-4px);
-  transition: opacity 0.18s ease, transform 0.18s ease;
-}
-.quick-description.visible { opacity: 1; transform: translateY(0); }
-
-/* Overlay slider sits on top of the canvas stage (right side) so the preview
-   image keeps its full width instead of being squeezed by a sidebar. */
-.quick-slider-overlay {
-  position: absolute;
-  top: 50%;
-  right: 14px;
-  transform: translateY(-50%);
-  z-index: 8;
-  width: 52px;
-  height: 68%;
-  max-height: 260px;
-  min-height: 160px;
-  /* 70% transparent: mostly see-through so the artwork underneath stays visible */
-  background: rgba(17, 18, 20, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 14px 0 16px;
-  gap: 8px;
-}
-.quick-slider-close {
-  border: none;
-  background: transparent;
-  color: var(--text);
-  font-size: 1.2rem;
-  line-height: 1;
-  padding: 2px 8px;
-  min-height: auto;
-  width: auto;
-  margin: 0;
-  cursor: pointer;
-}
-.quick-slider-value {
-  color: var(--text);
-  font-size: 0.72rem;
-  font-variant-numeric: tabular-nums;
-}
-/* The visible line and dot are both plain, absolutely-positioned elements we
-   place ourselves (see main.js's updateQuickSliderDot) — NOT the native range
-   thumb/track. A real <input type="range"> rotated via writing-mode renders its
-   thumb inconsistently across browsers/engines (centering it on the thickness
-   axis is not reliably implemented), which is what caused the dot to repeatedly
-   drift off the line. The <input> itself is kept for pointer/touch/keyboard
-   interaction and accessibility, but drawn fully transparent; it never paints
-   anything visible, so no browser's thumb-rendering quirks can show through. */
-.quick-slider-track {
-  position: relative;
-  flex: 1;
-  width: 28px;
-}
-.quick-slider-track::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 4px;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.45);
-  border-radius: 999px;
-  pointer-events: none;
-}
-.quick-slider-input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  touch-action: none;
-  opacity: 0;
-  writing-mode: vertical-lr;
-  direction: rtl;
-  appearance: none;
-  -webkit-appearance: none;
-}
-.quick-slider-dot {
-  position: absolute;
-  left: 50%;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 2px solid white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
 
 /* ---------- Preview ---------- */
 .preview-modes {
@@ -352,13 +212,6 @@ details.control-group[open] summary { margin-bottom: 10px; }
   accent-color: var(--accent);
 }
 
-/* On mobile these are obsolete: the quick-adjust icons + overlay slider replace them. */
-@media (max-width: 899px) {
-  .slider-row { display: none; }
-  /* Groups left with no visible content on mobile once their sliders are hidden above. */
-  .desktop-only-group { display: none; }
-}
-
 .select-row {
   display: block;
   margin: 14px 0;
@@ -377,6 +230,11 @@ details.control-group[open] summary { margin-bottom: 10px; }
   font-size: 0.95rem;
 }
 
+.swatch-block {
+  margin: 14px 0;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
 .swatch-row { display: flex; gap: 10px; margin-top: 10px; }
 .swatch-btn {
   width: 44px;
@@ -400,6 +258,15 @@ details.control-group[open] summary { margin-bottom: 10px; }
 .checkbox-row input { width: 20px; height: 20px; accent-color: var(--accent); }
 
 .hint { font-size: 0.78rem; color: var(--text-dim); line-height: 1.4; }
+
+/* Positioned between the mode tabs and the preview box, per mode — see main.js's
+   updateModeVisibility for which single download button is shown at a time. */
+.export-row {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
 
 .field-row { display: flex; gap: 10px; margin: 10px 0; }
 .field-row label {

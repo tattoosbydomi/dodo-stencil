@@ -10,7 +10,7 @@
      cache or a visitor's browser) for up to 10 minutes after a deploy. Bumping the
      ?v= below whenever js/ or css/ changes makes each new deploy a new URL, which
      no cache layer can serve stale — must match ASSET_VERSION in js/main.js. -->
-<link rel="stylesheet" href="css/styles.css?v=9">
+<link rel="stylesheet" href="css/styles.css?v=10">
 </head>
 <body>
 <header class="app-header">
@@ -31,89 +31,103 @@
 
   <section id="editor-view" class="editor-view" hidden>
 
-    <div class="preview-panel">
-      <div class="preview-modes" role="tablist">
-        <button class="mode-btn" data-mode="original" role="tab" aria-selected="false">Original</button>
-        <button class="mode-btn active" data-mode="stencil" role="tab" aria-selected="true">Stencil</button>
-        <button class="mode-btn" data-mode="reference" role="tab" aria-selected="false">Reference</button>
-        <button class="mode-btn" data-mode="colour" role="tab" aria-selected="false">ST + RF</button>
-      </div>
-
-      <div class="canvas-viewport" id="canvas-viewport">
-        <div class="canvas-stage" id="canvas-stage">
-          <canvas id="canvas-original" hidden></canvas>
-          <canvas id="canvas-stencil"></canvas>
-          <canvas id="canvas-reference" hidden></canvas>
-          <canvas id="canvas-colour" hidden></canvas>
-          <div class="quick-slider-overlay" id="quick-slider-overlay" hidden>
-            <button type="button" class="quick-slider-close" id="quick-slider-close" aria-label="Close slider">&times;</button>
-            <output class="quick-slider-value" id="quick-slider-output"></output>
-            <div class="quick-slider-track">
-              <input type="range" class="quick-slider-input" id="quick-slider-input" min="0" max="100" step="1">
-              <div class="quick-slider-dot" id="quick-slider-dot" aria-hidden="true"></div>
-            </div>
-          </div>
-          <div class="processing-overlay" id="processing-overlay" hidden>
-            <div class="spinner"></div>
-            <span id="processing-label">Processing&hellip;</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="zoom-controls" id="zoom-controls">
-        <button type="button" class="zoom-btn" id="zoom-out-btn" aria-label="Zoom out">&minus;</button>
-        <button type="button" class="zoom-btn zoom-fit-btn" id="zoom-reset-btn">Fit</button>
-        <button type="button" class="zoom-btn" id="zoom-in-btn" aria-label="Zoom in">+</button>
-        <span class="zoom-hint">Pinch or scroll to zoom &mdash; inspect at print size before exporting</span>
-      </div>
-
-      <div class="quick-controls" id="quick-controls" role="tablist" aria-label="Quick adjust">
-        <button class="quick-icon-btn" data-target="keep-detail" role="tab" aria-pressed="false" aria-label="Keep Detail" title="Keep Detail">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
-        </button>
-        <button class="quick-icon-btn" data-target="bg-cleanup" role="tab" aria-pressed="false" aria-label="Background Cleanup" title="Background Cleanup">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2l1.6 5.9L19 9.5l-5.4 1.6L12 17l-1.6-5.9L5 9.5l5.4-1.6L12 2z"/></svg>
-        </button>
-        <button class="quick-icon-btn" data-target="thickness" role="tab" aria-pressed="false" aria-label="Line Thickness" title="Line Thickness">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="1.5" fill="currentColor"/><rect x="3" y="10.5" width="18" height="3" fill="currentColor"/><rect x="3" y="17" width="18" height="4.5" fill="currentColor"/></svg>
-        </button>
-        <button class="quick-icon-btn" data-target="ref-opacity" role="tab" aria-pressed="false" aria-label="Reference Opacity" title="Reference Opacity">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="12" r="6" fill="currentColor" opacity="0.55"/><circle cx="14.5" cy="12" r="6" fill="currentColor" opacity="0.55"/></svg>
-        </button>
-        <button class="quick-icon-btn" data-target="ref-levels" role="tab" aria-pressed="false" aria-label="Reference Levels" title="Reference Levels">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="14" width="4" height="7" fill="currentColor"/><rect x="10" y="9" width="4" height="12" fill="currentColor"/><rect x="17" y="4" width="4" height="17" fill="currentColor"/></svg>
-        </button>
-      </div>
-      <p class="quick-description" id="quick-description" aria-live="polite"></p>
+    <div class="preview-modes" role="tablist">
+      <button class="mode-btn" data-mode="original" role="tab" aria-selected="false">Original</button>
+      <button class="mode-btn active" data-mode="stencil" role="tab" aria-selected="true">Stencil</button>
+      <button class="mode-btn" data-mode="reference" role="tab" aria-selected="false">Reference</button>
+      <button class="mode-btn" data-mode="colour" role="tab" aria-selected="false">ST + RF</button>
     </div>
 
-    <div class="controls-panel">
-
-      <!-- Desktop-only: these sliders have quick-adjust icon equivalents on mobile (see .quick-controls). -->
-      <details class="control-group desktop-only-group" open>
-        <summary><h2>Line Art</h2></summary>
-
-        <label class="slider-row">
-          <span>Keep Detail <output id="out-keep-detail"></output></span>
-          <input type="range" id="in-keep-detail" min="0" max="120" step="1" value="15">
+    <!-- Width/DPI are shared across modes; only the one matching data-mode-btn is shown. -->
+    <div class="export-row" id="export-row">
+      <div class="field-row">
+        <label>Width (cm)
+          <input type="number" id="in-print-width" min="0.5" step="0.1" value="15">
         </label>
-
-        <label class="slider-row">
-          <span>Background Cleanup <output id="out-bg-cleanup"></output></span>
-          <input type="range" id="in-bg-cleanup" min="150" max="255" step="1" value="225">
+        <label>DPI
+          <input type="number" id="in-print-dpi" min="72" max="1200" step="1" value="300">
         </label>
+      </div>
+      <p class="hint" id="output-size-hint"></p>
 
-        <label class="slider-row">
-          <span>Line Thickness <output id="out-thickness"></output></span>
-          <input type="range" id="in-thickness" min="-25" max="25" step="1" value="0">
-        </label>
+      <button class="primary-btn" id="export-stencil-btn" data-mode-btn="stencil">Download Stencil (thermal printer)</button>
+      <button class="primary-btn" id="export-reference-btn" data-mode-btn="reference">Download Grayscale Reference</button>
+      <button class="primary-btn" id="export-colour-btn" data-mode-btn="colour">Download Stencil + Reference (Colour)</button>
+    </div>
 
-        <!-- Invert lines: disabled for now, kept in the DOM (hidden) so it can be re-enabled later by removing `hidden`. -->
-        <label class="checkbox-row" hidden><input type="checkbox" id="in-invert"> Invert lines</label>
-      </details>
+    <div class="canvas-viewport" id="canvas-viewport">
+      <div class="canvas-stage" id="canvas-stage">
+        <canvas id="canvas-original" hidden></canvas>
+        <canvas id="canvas-stencil"></canvas>
+        <canvas id="canvas-reference" hidden></canvas>
+        <canvas id="canvas-colour" hidden></canvas>
+        <div class="processing-overlay" id="processing-overlay" hidden>
+          <div class="spinner"></div>
+          <span id="processing-label">Processing&hellip;</span>
+        </div>
+      </div>
+    </div>
 
-      <details class="control-group" open>
-        <summary><h2>Stencil Colour</h2></summary>
+    <div class="zoom-controls" id="zoom-controls">
+      <button type="button" class="zoom-btn" id="zoom-out-btn" aria-label="Zoom out">&minus;</button>
+      <button type="button" class="zoom-btn zoom-fit-btn" id="zoom-reset-btn">Fit</button>
+      <button type="button" class="zoom-btn" id="zoom-in-btn" aria-label="Zoom in">+</button>
+      <span class="zoom-hint">Pinch or scroll to zoom &mdash; inspect at print size before exporting</span>
+    </div>
+
+    <!-- Stencil mode only. -->
+    <div id="stencil-sliders">
+      <label class="slider-row">
+        <span>Keep Detail <output id="out-keep-detail"></output></span>
+        <input type="range" id="in-keep-detail" min="0" max="120" step="1" value="15">
+      </label>
+
+      <label class="slider-row">
+        <span>Background Cleanup <output id="out-bg-cleanup"></output></span>
+        <input type="range" id="in-bg-cleanup" min="150" max="255" step="1" value="225">
+      </label>
+
+      <label class="slider-row">
+        <span>Line Thickness <output id="out-thickness"></output></span>
+        <input type="range" id="in-thickness" min="-25" max="25" step="1" value="0">
+      </label>
+
+      <!-- Invert lines: disabled for now, kept in the DOM (hidden) so it can be re-enabled later by removing `hidden`. -->
+      <label class="checkbox-row" hidden><input type="checkbox" id="in-invert"> Invert lines</label>
+    </div>
+
+    <!-- Settings: which rows are visible depends on the selected mode (see main.js's
+         updateModeVisibility) — DOM order is the union of every mode's order, so
+         showing any subset preserves the right relative order. -->
+    <details class="control-group" id="settings-group" open>
+      <summary><h2>Settings</h2></summary>
+
+      <label class="select-row" id="row-model">
+        <span>Model</span>
+        <select id="in-line-style">
+          <option value="soft">Soft (Network)</option>
+          <option value="threshold">Crisp (Fixed Threshold)</option>
+          <option value="auto-threshold">Crisp (Auto Threshold)</option>
+          <option value="clean">Clean Lines (Skeleton + Re-stroke)</option>
+        </select>
+      </label>
+
+      <label class="checkbox-row" id="row-sharpen"><input type="checkbox" id="in-presharpen"> Sharpen source photo before analysis</label>
+
+      <label class="checkbox-row" id="row-ref-posterize"><input type="checkbox" id="in-ref-posterize"> Simplify reference image into tone bands</label>
+
+      <label class="slider-row" id="row-ref-levels">
+        <span>Reference Levels <output id="out-ref-levels"></output></span>
+        <input type="range" id="in-ref-levels" min="4" max="16" step="1" value="8">
+      </label>
+
+      <label class="slider-row" id="row-ref-opacity">
+        <span>Reference Opacity <output id="out-ref-opacity"></output></span>
+        <input type="range" id="in-ref-opacity" min="0" max="100" step="1" value="100">
+      </label>
+
+      <div class="swatch-block" id="row-colour">
+        <span>Stencil Colour</span>
         <div class="swatch-row" id="colour-swatches" role="radiogroup" aria-label="Stencil colour">
           <button class="swatch-btn active" data-colour="#FF007F" style="--swatch: #FF007F" aria-label="Electric magenta" aria-pressed="true"></button>
           <button class="swatch-btn" data-colour="#FF0000" style="--swatch: #FF0000" aria-label="Vivid scarlet" aria-pressed="false"></button>
@@ -121,57 +135,12 @@
           <button class="swatch-btn" data-colour="#20D000" style="--swatch: #20D000" aria-label="Chartreuse lime" aria-pressed="false"></button>
           <button class="swatch-btn" data-colour="#00AEEF" style="--swatch: #00AEEF" aria-label="Electric cyan" aria-pressed="false"></button>
         </div>
-      </details>
+      </div>
+    </details>
 
-      <details class="control-group" open>
-        <summary><h2>Settings</h2></summary>
-        <label class="select-row">
-          <span>Line Style</span>
-          <select id="in-line-style">
-            <option value="soft">Soft (Network)</option>
-            <option value="threshold">Crisp (Fixed Threshold)</option>
-            <option value="auto-threshold">Crisp (Auto Threshold)</option>
-            <option value="clean">Clean Lines (Skeleton + Re-stroke)</option>
-          </select>
-        </label>
-
-        <label class="checkbox-row"><input type="checkbox" id="in-presharpen"> Sharpen source photo before analysis</label>
-
-        <label class="slider-row">
-          <span>Reference Opacity <output id="out-ref-opacity"></output></span>
-          <input type="range" id="in-ref-opacity" min="0" max="100" step="1" value="100">
-        </label>
-
-        <label class="checkbox-row"><input type="checkbox" id="in-ref-posterize"> Simplify reference image into tone bands</label>
-
-        <label class="slider-row">
-          <span>Reference Levels <output id="out-ref-levels"></output></span>
-          <input type="range" id="in-ref-levels" min="4" max="16" step="1" value="8">
-        </label>
-      </details>
-
-      <details class="control-group" open>
-        <summary><h2>Export</h2></summary>
-
-        <div class="field-row">
-          <label>Width (cm)
-            <input type="number" id="in-print-width" min="0.5" step="0.1" value="15">
-          </label>
-          <label>DPI
-            <input type="number" id="in-print-dpi" min="72" max="1200" step="1" value="300">
-          </label>
-        </div>
-        <p class="hint" id="output-size-hint"></p>
-
-        <button class="primary-btn" id="export-stencil-btn">Download Stencil (thermal printer)</button>
-        <button class="secondary-btn" id="export-reference-btn">Download Grayscale Reference</button>
-        <button class="secondary-btn" id="export-colour-btn">Download Stencil + Reference (Colour)</button>
-      </details>
-
-    </div>
   </section>
 </main>
 
-<script type="module" src="js/main.js?v=11"></script>
+<script type="module" src="js/main.js?v=12"></script>
 </body>
 </html>

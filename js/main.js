@@ -46,16 +46,19 @@ const dom = {
   overlay: el('processing-overlay'),
   overlayLabel: el('processing-label'),
   modeButtons: Array.from(document.querySelectorAll('.mode-btn')),
-  quickIconButtons: Array.from(document.querySelectorAll('.quick-icon-btn')),
-  quickSliderOverlay: el('quick-slider-overlay'),
-  quickSliderInput: el('quick-slider-input'),
-  quickSliderDot: el('quick-slider-dot'),
-  quickSliderOutput: el('quick-slider-output'),
-  quickSliderClose: el('quick-slider-close'),
-  quickDescription: el('quick-description'),
+  exportRow: el('export-row'),
+  exportButtons: Array.from(document.querySelectorAll('[data-mode-btn]')),
   exportStencilBtn: el('export-stencil-btn'),
   exportReferenceBtn: el('export-reference-btn'),
   exportColourBtn: el('export-colour-btn'),
+  stencilSliders: el('stencil-sliders'),
+  settingsGroup: el('settings-group'),
+  rowModel: el('row-model'),
+  rowSharpen: el('row-sharpen'),
+  rowRefPosterize: el('row-ref-posterize'),
+  rowRefLevels: el('row-ref-levels'),
+  rowRefOpacity: el('row-ref-opacity'),
+  rowColour: el('row-colour'),
   colourSwatches: Array.from(document.querySelectorAll('.swatch-btn')),
   refOpacity: el('in-ref-opacity'),
   refOpacityOut: el('out-ref-opacity'),
@@ -68,11 +71,9 @@ const sliderIds = [
   'keep-detail', 'bg-cleanup', 'thickness',
   'ref-levels',
 ];
-// Reference Levels is a literal tone-band count (see percentFromValue's caller
-// below for the same rule on the mobile quick-slider) — every other slider here
-// shows a normalised 0-100 reading instead of its real underlying range, so the
-// same control reads the same whether you're adjusting it here or via the
-// mobile quick-adjust overlay.
+// Reference Levels is a literal tone-band count, so it keeps its own raw scale;
+// every other slider here shows a normalised 0-100 reading instead of its real
+// underlying range (see percentFromValue further down).
 const RAW_SCALE_IDS = new Set(['ref-levels']);
 const sliders = {};
 for (const id of sliderIds) {
@@ -172,7 +173,6 @@ dom.resetBtn.addEventListener('click', () => {
   previewImageData = null;
   previewLayers = null;
   previewAnalyzed = false;
-  closeQuickSlider();
   resetZoom();
   dom.fileInput.value = '';
   dom.editorView.hidden = true;
@@ -423,6 +423,32 @@ dom.refOpacity.addEventListener('input', () => {
 });
 
 // --- Preview mode (Original / Stencil / Reference / ST + RF) -------------
+// Which rows each mode shows within the shared Settings group — the DOM order
+// of those rows (see index.html) is the union of all four lists below, so
+// showing any one mode's subset still reads in the right relative order.
+const SETTINGS_ROWS_BY_MODE = {
+  original: [],
+  stencil: ['rowModel', 'rowSharpen'],
+  reference: ['rowRefPosterize', 'rowRefLevels'],
+  colour: ['rowModel', 'rowRefPosterize', 'rowRefLevels', 'rowRefOpacity', 'rowColour'],
+};
+const ALL_SETTINGS_ROWS = ['rowModel', 'rowSharpen', 'rowRefPosterize', 'rowRefLevels', 'rowRefOpacity', 'rowColour'];
+
+function updateModeVisibility(mode) {
+  dom.exportRow.hidden = mode === 'original';
+  for (const btn of dom.exportButtons) {
+    btn.hidden = btn.dataset.modeBtn !== mode;
+  }
+
+  dom.stencilSliders.hidden = mode !== 'stencil';
+
+  const visibleRows = new Set(SETTINGS_ROWS_BY_MODE[mode] || []);
+  dom.settingsGroup.hidden = visibleRows.size === 0;
+  for (const key of ALL_SETTINGS_ROWS) {
+    dom[key].hidden = !visibleRows.has(key);
+  }
+}
+
 function setMode(mode) {
   currentMode = mode;
   for (const btn of dom.modeButtons) {
@@ -434,117 +460,20 @@ function setMode(mode) {
   dom.canvasStencil.hidden = mode !== 'stencil';
   dom.canvasReference.hidden = mode !== 'reference';
   dom.canvasColour.hidden = mode !== 'colour';
+  updateModeVisibility(mode);
 }
 
 for (const btn of dom.modeButtons) {
   btn.addEventListener('click', () => setMode(btn.dataset.mode));
 }
 
-// --- Mobile quick-adjust icons (vertical slider overlay on the preview) ---
-// Most controls show a normalised 0-100 scale on the overlay, regardless of the
-// real control's underlying range (e.g. Line Thickness is really -25..25).
-// Reference Levels is the exception: it's a literal count of tone bands, so
-// normalising it to 0-100 would misrepresent it — it keeps its own raw scale.
-const quickSliderTargets = {
-  'keep-detail': { input: sliders['keep-detail'].input, label: 'Keep Detail' },
-  'bg-cleanup': { input: sliders['bg-cleanup'].input, label: 'Background Cleanup' },
-  'thickness': { input: sliders['thickness'].input, label: 'Line Thickness' },
-  'ref-opacity': { input: dom.refOpacity, label: 'Reference Opacity' },
-  'ref-levels': { input: sliders['ref-levels'].input, label: 'Reference Levels', raw: true },
-};
-
+// Reference Levels shows its literal tone-band count (see RAW_SCALE_IDS above);
+// every other slider here shows a normalised 0-100 reading instead of its real
+// underlying range (e.g. Line Thickness is really -25..25).
 function percentFromValue(value, min, max) {
   if (max === min) return 0;
   return Math.round(((value - min) / (max - min)) * 100);
 }
-
-function valueFromPercent(percent, min, max, step) {
-  const raw = min + (percent / 100) * (max - min);
-  const snapped = Math.round(raw / step) * step;
-  return Math.min(max, Math.max(min, snapped));
-}
-
-// Positions the custom dot to match the input's current value — see the CSS
-// comment on .quick-slider-dot for why this isn't just the native thumb.
-function updateQuickSliderDot() {
-  const min = Number(dom.quickSliderInput.min);
-  const max = Number(dom.quickSliderInput.max);
-  const value = Number(dom.quickSliderInput.value);
-  const percent = percentFromValue(value, min, max);
-  dom.quickSliderDot.style.top = `${100 - percent}%`; // higher value = higher up
-}
-
-let activeQuickTarget = null;
-
-function openQuickSlider(key) {
-  const target = quickSliderTargets[key];
-  if (!target) return;
-  activeQuickTarget = key;
-  const min = Number(target.input.min);
-  const max = Number(target.input.max);
-  if (target.raw) {
-    dom.quickSliderInput.min = min;
-    dom.quickSliderInput.max = max;
-    dom.quickSliderInput.step = target.input.step || 1;
-    dom.quickSliderInput.value = target.input.value;
-    dom.quickSliderOutput.textContent = target.input.value;
-  } else {
-    dom.quickSliderInput.min = 0;
-    dom.quickSliderInput.max = 100;
-    dom.quickSliderInput.step = 1;
-    const percent = percentFromValue(Number(target.input.value), min, max);
-    dom.quickSliderInput.value = percent;
-    dom.quickSliderOutput.textContent = percent;
-  }
-  updateQuickSliderDot();
-  dom.quickSliderOverlay.hidden = false;
-  dom.quickDescription.textContent = target.label;
-  dom.quickDescription.classList.add('visible');
-  for (const btn of dom.quickIconButtons) {
-    const active = btn.dataset.target === key;
-    btn.classList.toggle('active', active);
-    btn.setAttribute('aria-pressed', String(active));
-  }
-}
-
-function closeQuickSlider() {
-  activeQuickTarget = null;
-  dom.quickSliderOverlay.hidden = true;
-  dom.quickDescription.classList.remove('visible');
-  for (const btn of dom.quickIconButtons) {
-    btn.classList.remove('active');
-    btn.setAttribute('aria-pressed', 'false');
-  }
-}
-
-for (const btn of dom.quickIconButtons) {
-  btn.addEventListener('click', () => {
-    const key = btn.dataset.target;
-    if (activeQuickTarget === key) closeQuickSlider();
-    else openQuickSlider(key);
-  });
-}
-
-dom.quickSliderClose.addEventListener('click', closeQuickSlider);
-
-dom.quickSliderInput.addEventListener('input', () => {
-  if (!activeQuickTarget) return;
-  const target = quickSliderTargets[activeQuickTarget];
-  const { input } = target;
-  if (target.raw) {
-    input.value = dom.quickSliderInput.value;
-    dom.quickSliderOutput.textContent = dom.quickSliderInput.value;
-  } else {
-    const min = Number(input.min);
-    const max = Number(input.max);
-    const step = Number(input.step) || 1;
-    const percent = Number(dom.quickSliderInput.value);
-    input.value = valueFromPercent(percent, min, max, step);
-    dom.quickSliderOutput.textContent = percent;
-  }
-  updateQuickSliderDot();
-  input.dispatchEvent(new Event('input', { bubbles: true }));
-});
 
 // --- Export ------------------------------------------------------------
 function computeOutputPixelSize() {
